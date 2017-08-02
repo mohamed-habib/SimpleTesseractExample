@@ -2,63 +2,90 @@
 
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity"
-    android:weightSum="1">
+    android:orientation="vertical"
+    android:weightSum="1"
+    tools:context=".MainActivity">
 
     <RelativeLayout
+        android:id="@+id/ImageContainer"
         android:layout_width="match_parent"
         android:layout_height="332dp"
-        android:background="#ffffff"
-        android:id="@+id/ImageContainer">
+        android:background="#ffffff">
 
         <ImageView
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
             android:id="@+id/imageView"
-            android:src="@drawable/test_image"/>
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
 
     </RelativeLayout>
 
-    <RelativeLayout
+    <LinearLayout
+        android:id="@+id/OCRButtonContainer"
         android:layout_width="match_parent"
         android:layout_height="42dp"
-        android:layout_alignParentTop="true"
         android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:background="#167865"
         android:clickable="true"
         android:onClick="processImage"
-        android:background="#167865"
-        android:id="@+id/OCRButtonContainer">
+        android:orientation="horizontal">
+
+        <Spinner
+            android:id="@+id/spinner"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:entries="@array/lang_arrays"
+            android:prompt="@string/lang" />
+
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Run OCR"
-            android:id="@+id/OCRbutton"
-            android:textSize="18dp"
-            android:layout_centerVertical="true"
-            android:layout_centerHorizontal="true"
+            android:layout_gravity="center"
+            android:layout_marginLeft="20dp"
             android:clickable="true"
-            android:onClick="processImage"/>
-    </RelativeLayout>
+            android:onClick="chooseImage"
+            android:padding="10dp"
+            android:text="Choose Image"
+            android:textSize="18dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginLeft="20dp"
+            android:clickable="true"
+            android:onClick="processImage"
+            android:padding="10dp"
+            android:text="Run OCR"
+            android:textSize="18dp" />
+
+
+    </LinearLayout>
 
     <RelativeLayout
+        android:id="@+id/OCRTextContainer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#e4e3e3"
-        android:id="@+id/OCRTextContainer">
+        android:background="#e4e3e3">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="OCR Text will appear here"
-            android:id="@+id/OCRTextView"
-            android:textSize="18dp"
-            android:layout_centerVertical="true"
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
             android:layout_centerHorizontal="true"
-            android:background="#dedede"
-            android:textColor="#a3a3a3" />
+            android:layout_centerVertical="true">
+
+            <TextView
+                android:id="@+id/OCRTextView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="#dedede"
+                android:text="OCR Text will appear here"
+                android:textColor="#a3a3a3"
+                android:textSize="18dp" />
+        </ScrollView>
     </RelativeLayout>
 </LinearLayout>

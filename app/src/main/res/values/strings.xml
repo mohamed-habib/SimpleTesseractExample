@@ -4,4 +4,12 @@
         <item>Pick a Photo</item>
         <item>Take a Photo</item>
     </string-array>
+    <string name="lang">Language</string>
+
+    <string-array name="lang_arrays">
+        <item>Arabic</item>
+        <item>English</item>
+    </string-array>
+
+
 </resources>
