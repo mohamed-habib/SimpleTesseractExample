@@ -28,10 +28,14 @@ import pl.aprilapps.easyphotopicker.EasyImage;
 import pl.tajchert.nammu.Nammu;
 import pl.tajchert.nammu.PermissionCallback;
 
+import static android.view.View.GONE;
+
 public class MainActivity extends AppCompatActivity {
 
     Bitmap image;
     ImageView imageView;
+
+    TextView textView;
     TextView OCRTextView;
 
     @Override
@@ -41,6 +45,7 @@ public class MainActivity extends AppCompatActivity {
         Nammu.init(this);
 
         imageView = (ImageView) findViewById(R.id.imageView);
+        textView = (TextView) findViewById(R.id.textView);
         OCRTextView = (TextView) findViewById(R.id.OCRTextView);
 
         int permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
@@ -85,6 +90,8 @@ public class MainActivity extends AppCompatActivity {
                 if (imageFiles.size() > 0) {
                     image = getBitMap(imageFiles.get(0));
                     imageView.setImageBitmap(image);
+                    textView.setVisibility(GONE);
+
                     OCRTextView.setText("");
                 }
             }

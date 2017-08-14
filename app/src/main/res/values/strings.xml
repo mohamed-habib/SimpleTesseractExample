@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">TesseractExample</string>
+    <string name="app_name">POC</string>
     <string-array name="photo_dialog_options">
         <item>Pick a Photo</item>
         <item>Take a Photo</item>
