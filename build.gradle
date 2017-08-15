@@ -15,6 +15,8 @@ buildscript {
 allprojects {
     repositories {
         jcenter()
+        // required to find the db flow project artifacts
+        maven { url "https://www.jitpack.io" }
     }
 }
 
