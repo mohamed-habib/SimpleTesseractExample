@@ -69,6 +69,18 @@
                 android:text="Run OCR"
                 android:textColor="#ffffff" />
 
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginLeft="20dp"
+                android:background="#448aff"
+                android:clickable="true"
+                android:onClick="onScanQRClick"
+                android:padding="10dp"
+                android:text="Scan QR Code"
+                android:textColor="#ffffff" />
+
         </LinearLayout>
 
         <LinearLayout
@@ -91,7 +103,7 @@
                 android:textStyle="bold" />
 
             <EditText
-                android:id="@+id/OCRTextView"
+                android:id="@+id/OCREditText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"

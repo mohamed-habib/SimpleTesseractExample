@@ -1,6 +1,7 @@
 package com.codelab.ocrexample;
 
 import android.Manifest;
+import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -9,8 +10,10 @@ import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.design.widget.Snackbar;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.util.SparseArray;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -23,26 +26,27 @@ import com.codelab.ocrexample.data.model.Card;
 import com.google.android.gms.vision.Frame;
 import com.google.android.gms.vision.text.TextBlock;
 import com.google.android.gms.vision.text.TextRecognizer;
+import com.google.zxing.Result;
 import com.theartofdev.edmodo.cropper.CropImage;
 import com.theartofdev.edmodo.cropper.CropImageView;
 
 import java.util.UUID;
 
 import me.dm7.barcodescanner.zxing.ZXingScannerView;
-import pl.aprilapps.easyphotopicker.EasyImage;
 import pl.tajchert.nammu.Nammu;
 import pl.tajchert.nammu.PermissionCallback;
 
 import static android.view.View.GONE;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements ZXingScannerView.ResultHandler {
 
     Bitmap mImageBitmap;
     ImageView mImageView;
     TextView mTextView;
-    TextView mOCRTextView;
+    TextView OCREditText;
     String mImagePath;
     EditText mNotesET;
+    private ZXingScannerView mScannerView;
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -69,11 +73,12 @@ public class MainActivity extends AppCompatActivity {
         Nammu.init(this);
         mImageView = (ImageView) findViewById(R.id.imageView);
         mTextView = (TextView) findViewById(R.id.textView);
-        mOCRTextView = (TextView) findViewById(R.id.OCRTextView);
+        OCREditText = (TextView) findViewById(R.id.OCREditText);
         mNotesET = (EditText) findViewById(R.id.notes);
+        mScannerView = new ZXingScannerView(this);   // Programmatically initialize the scanner view
 
-        int permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
-        if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
+        int storagePermissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        if (storagePermissionCheck != PackageManager.PERMISSION_GRANTED) {
             Nammu.askForPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE, new PermissionCallback() {
                 @Override
                 public void permissionGranted() {
@@ -84,6 +89,20 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
         }
+
+        int cameraPermissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA);
+        if (cameraPermissionCheck != PackageManager.PERMISSION_GRANTED) {
+            Nammu.askForPermission(this, Manifest.permission.CAMERA, new PermissionCallback() {
+                @Override
+                public void permissionGranted() {
+                }
+
+                @Override
+                public void permissionRefused() {
+                }
+            });
+        }
+
     }
 
     @Override
@@ -103,19 +122,12 @@ public class MainActivity extends AppCompatActivity {
                 mImageBitmap = Utils.getBitmap(mImagePath);
                 mImageView.setImageBitmap(mImageBitmap);
                 mTextView.setVisibility(GONE);
-                mOCRTextView.setText("");
+                OCREditText.setText("");
 
             } else if (resultCode == CropImage.CROP_IMAGE_ACTIVITY_RESULT_ERROR_CODE) {
                 Exception error = result.getError();
             }
         }
-    }
-
-    @Override
-    protected void onDestroy() {
-        // Clear any configuration that was done!
-        EasyImage.clearConfiguration(this);
-        super.onDestroy();
     }
 
     public void processImage(View view) {
@@ -130,14 +142,54 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void submitClick(View view) {
+        if (mImagePath == null) {
+            Snackbar.make(view, "Choose card image", Snackbar.LENGTH_SHORT).setAction("CHOOSE IMAGE", new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    onSelectImageClick(null);
+                }
+            }).show();
+            return;
+        }
         //create Card object and save to db
-        Card card = new Card(mImagePath, mOCRTextView.getText().toString(), mNotesET.getText().toString(), UUID.randomUUID());
+        Card card = new Card(mImagePath, OCREditText.getText().toString(), mNotesET.getText().toString(), UUID.randomUUID());
         card.insert();
 
-        mOCRTextView.setText("");
+        OCREditText.setText("");
         mImageView.setImageDrawable(null);
         mImagePath = "";
         mImageBitmap = null;
+    }
+
+    Dialog cameraDialog;
+
+    public void onScanQRClick(View view) {
+        mScannerView.setResultHandler(this); // Register ourselves as a handler for scan results.
+        mScannerView.startCamera(0);          // Start camera
+        cameraDialog = showCameraDialog();
+    }
+
+    Dialog showCameraDialog() {
+        // custom dialog
+        Dialog dialog = new Dialog(this);
+        dialog.setContentView(mScannerView);
+        dialog.show();
+        return dialog;
+    }
+
+    @Override
+    public void handleResult(Result rawResult) {
+        // Do something with the result here
+        Log.v("QR", rawResult.getText()); // Prints scan results
+        Log.v("QR", rawResult.getBarcodeFormat().toString()); // Prints the scan format (qrcode, pdf417 etc.)
+
+        String cardData = rawResult.getText().replace(";", "\n\n");
+        cardData = cardData.replace("MECARD:","");
+
+        OCREditText.setText(cardData);
+
+        mScannerView.stopCamera();           // Stop camera after optaining result
+        cameraDialog.dismiss();
     }
 
     private class MyAsyncTask extends AsyncTask<Void, Void, String> {
@@ -150,16 +202,16 @@ public class MainActivity extends AppCompatActivity {
         }
 
         protected String doInBackground(Void... args) {
-            String OCRresult = "";
+            StringBuilder OCRresult = new StringBuilder();
             try {
                 TextRecognizer textRecognizer = new TextRecognizer.Builder(MainActivity.this).build();
                 SparseArray<TextBlock> textBlocks = textRecognizer.detect(new Frame.Builder().setBitmap(mImageBitmap).build());
                 for (int i = 0; i < textBlocks.size(); i++) {
-                    OCRresult += textBlocks.valueAt(i).getValue() + "\n" + "\n";
+                    OCRresult.append(textBlocks.valueAt(i).getValue()).append("\n").append("\n");
                 }
             } catch (Exception e) {
             }
-            return OCRresult;
+            return OCRresult.toString();
         }
 
         protected void onPostExecute(String OCRresult) {
@@ -167,9 +219,10 @@ public class MainActivity extends AppCompatActivity {
                 pd.dismiss();
                 return;
             }
-            mOCRTextView.setText(OCRresult);
+            OCREditText.setText(OCRresult);
             pd.dismiss();
         }
+
     }
 
     private ProgressDialog setupProgressDialog() {
