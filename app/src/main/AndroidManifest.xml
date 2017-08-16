@@ -33,6 +33,9 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".MainActivity" />
         </activity>
+
+        <activity android:name="com.theartofdev.edmodo.cropper.CropImageActivity"/>
+
     </application>
 
 </manifest>

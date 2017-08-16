@@ -52,7 +52,7 @@
                 android:layout_gravity="center"
                 android:background="#448aff"
                 android:clickable="true"
-                android:onClick="chooseImage"
+                android:onClick="onSelectImageClick"
                 android:padding="10dp"
                 android:text="Choose Image"
                 android:textColor="#ffffff" />

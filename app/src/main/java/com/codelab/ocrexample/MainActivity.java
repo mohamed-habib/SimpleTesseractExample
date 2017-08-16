@@ -6,6 +6,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
@@ -22,12 +23,12 @@ import com.codelab.ocrexample.data.model.Card;
 import com.google.android.gms.vision.Frame;
 import com.google.android.gms.vision.text.TextBlock;
 import com.google.android.gms.vision.text.TextRecognizer;
+import com.theartofdev.edmodo.cropper.CropImage;
+import com.theartofdev.edmodo.cropper.CropImageView;
 
-import java.io.File;
-import java.util.List;
 import java.util.UUID;
 
-import pl.aprilapps.easyphotopicker.DefaultCallback;
+import me.dm7.barcodescanner.zxing.ZXingScannerView;
 import pl.aprilapps.easyphotopicker.EasyImage;
 import pl.tajchert.nammu.Nammu;
 import pl.tajchert.nammu.PermissionCallback;
@@ -66,7 +67,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Nammu.init(this);
-
         mImageView = (ImageView) findViewById(R.id.imageView);
         mTextView = (TextView) findViewById(R.id.textView);
         mOCRTextView = (TextView) findViewById(R.id.OCRTextView);
@@ -84,13 +84,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
         }
-
-        EasyImage.configuration(this)
-                .setImagesFolderName("OCR POC")
-                .setCopyTakenPhotosToPublicGalleryAppFolder(true)
-                .setCopyPickedImagesToPublicGalleryAppFolder(true)
-                .setAllowMultiplePickInGallery(true);
-
     }
 
     @Override
@@ -102,34 +95,20 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        EasyImage.handleActivityResult(requestCode, resultCode, data, this, new DefaultCallback() {
-            @Override
-            public void onImagePickerError(Exception e, EasyImage.ImageSource source, int type) {
-                //Some error handling
-                e.printStackTrace();
-            }
+        if (requestCode == CropImage.CROP_IMAGE_ACTIVITY_REQUEST_CODE) {
+            CropImage.ActivityResult result = CropImage.getActivityResult(data);
+            if (resultCode == RESULT_OK) {
+                Uri resultUri = result.getUri();
+                mImagePath = resultUri.getPath();
+                mImageBitmap = Utils.getBitmap(mImagePath);
+                mImageView.setImageBitmap(mImageBitmap);
+                mTextView.setVisibility(GONE);
+                mOCRTextView.setText("");
 
-            @Override
-            public void onImagesPicked(List<File> imageFiles, EasyImage.ImageSource source, int type) {
-                if (imageFiles.size() > 0) {
-                    mImagePath = imageFiles.get(0).getAbsolutePath();
-                    mImageBitmap = Utils.getBitmap(mImagePath);
-                    mImageView.setImageBitmap(mImageBitmap);
-                    mTextView.setVisibility(GONE);
-
-                    mOCRTextView.setText("");
-                }
+            } else if (resultCode == CropImage.CROP_IMAGE_ACTIVITY_RESULT_ERROR_CODE) {
+                Exception error = result.getError();
             }
-
-            @Override
-            public void onCanceled(EasyImage.ImageSource source, int type) {
-                //Cancel handling, you might wanna remove taken photo if it was canceled
-                if (source == EasyImage.ImageSource.CAMERA) {
-                    File photoFile = EasyImage.lastlyTakenButCanceledPhoto(MainActivity.this);
-                    if (photoFile != null) photoFile.delete();
-                }
-            }
-        });
+        }
     }
 
     @Override
@@ -144,8 +123,10 @@ public class MainActivity extends AppCompatActivity {
         myAsyncTask.execute();
     }
 
-    public void chooseImage(View view) {
-        EasyImage.openChooserWithGallery(this, "Choose or capture mImageBitmap", 0);
+    public void onSelectImageClick(View view) {
+        CropImage.activity(null)
+                .setGuidelines(CropImageView.Guidelines.ON)
+                .start(MainActivity.this);
     }
 
     public void submitClick(View view) {
