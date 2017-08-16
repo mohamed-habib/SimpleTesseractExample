@@ -13,6 +13,7 @@ import android.os.Bundle;
 import android.support.design.widget.Snackbar;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.text.TextUtils;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.Menu;
@@ -130,7 +131,9 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
         }
     }
 
-    public void processImage(View view) {
+    public void runOCRClick(View view) {
+        if (checkForImageCapture(view)) return;
+
         MyAsyncTask myAsyncTask = new MyAsyncTask();
         myAsyncTask.execute();
     }
@@ -142,6 +145,19 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
     }
 
     public void submitClick(View view) {
+        if (checkForImageCapture(view)) return;
+        if (checkForCardText(view)) return;
+        //create Card object and save to db
+        Card card = new Card(mImagePath, OCREditText.getText().toString(), mNotesET.getText().toString(), UUID.randomUUID());
+        card.insert();
+
+        OCREditText.setText("");
+        mImageView.setImageDrawable(null);
+        mImagePath = null;
+        mImageBitmap = null;
+    }
+
+    private boolean checkForImageCapture(View view) {
         if (mImagePath == null) {
             Snackbar.make(view, "Choose card image", Snackbar.LENGTH_SHORT).setAction("CHOOSE IMAGE", new View.OnClickListener() {
                 @Override
@@ -149,16 +165,17 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
                     onSelectImageClick(null);
                 }
             }).show();
-            return;
+            return true;
         }
-        //create Card object and save to db
-        Card card = new Card(mImagePath, OCREditText.getText().toString(), mNotesET.getText().toString(), UUID.randomUUID());
-        card.insert();
+        return false;
+    }
 
-        OCREditText.setText("");
-        mImageView.setImageDrawable(null);
-        mImagePath = "";
-        mImageBitmap = null;
+    private boolean checkForCardText(View view) {
+        if (TextUtils.isEmpty(OCREditText.getText())) {
+            Snackbar.make(view, "Card doesn't have text, Add some info", Snackbar.LENGTH_SHORT).show();
+            return true;
+        }
+        return false;
     }
 
     Dialog cameraDialog;
@@ -166,15 +183,23 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
     public void onScanQRClick(View view) {
         mScannerView.setResultHandler(this); // Register ourselves as a handler for scan results.
         mScannerView.startCamera(0);          // Start camera
-        cameraDialog = showCameraDialog();
+        showCameraDialog();
     }
 
-    Dialog showCameraDialog() {
-        // custom dialog
-        Dialog dialog = new Dialog(this);
-        dialog.setContentView(mScannerView);
-        dialog.show();
-        return dialog;
+    private void showCameraDialog() {
+        if (cameraDialog == null) {
+            cameraDialog = new Dialog(this);
+            cameraDialog.setContentView(mScannerView);
+            cameraDialog.show();
+            cameraDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                @Override
+                public void onDismiss(DialogInterface dialog) {
+                    mScannerView.stopCamera();
+                }
+            });
+        } else {
+            cameraDialog.show();
+        }
     }
 
     @Override
@@ -184,11 +209,10 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
         Log.v("QR", rawResult.getBarcodeFormat().toString()); // Prints the scan format (qrcode, pdf417 etc.)
 
         String cardData = rawResult.getText().replace(";", "\n\n");
-        cardData = cardData.replace("MECARD:","");
+        cardData = cardData.replace("MECARD:", "");
 
         OCREditText.setText(cardData);
 
-        mScannerView.stopCamera();           // Stop camera after optaining result
         cameraDialog.dismiss();
     }
 
@@ -203,13 +227,15 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
 
         protected String doInBackground(Void... args) {
             StringBuilder OCRresult = new StringBuilder();
-            try {
-                TextRecognizer textRecognizer = new TextRecognizer.Builder(MainActivity.this).build();
-                SparseArray<TextBlock> textBlocks = textRecognizer.detect(new Frame.Builder().setBitmap(mImageBitmap).build());
-                for (int i = 0; i < textBlocks.size(); i++) {
-                    OCRresult.append(textBlocks.valueAt(i).getValue()).append("\n").append("\n");
+            if (mImageBitmap != null) {
+                try {
+                    TextRecognizer textRecognizer = new TextRecognizer.Builder(MainActivity.this).build();
+                    SparseArray<TextBlock> textBlocks = textRecognizer.detect(new Frame.Builder().setBitmap(mImageBitmap).build());
+                    for (int i = 0; i < textBlocks.size(); i++) {
+                        OCRresult.append(textBlocks.valueAt(i).getValue()).append("\n").append("\n");
+                    }
+                } catch (Exception e) {
                 }
-            } catch (Exception e) {
             }
             return OCRresult.toString();
         }

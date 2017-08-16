@@ -1,5 +1,7 @@
 package com.codelab.ocrexample;
 
+import android.app.Dialog;
+import android.content.Context;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -7,6 +9,7 @@ import android.view.ViewGroup;
 import android.widget.Filter;
 import android.widget.Filterable;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 import com.codelab.ocrexample.data.model.Card;
 
@@ -21,10 +24,12 @@ public class CardsAdapter extends RecyclerView.Adapter<CardsAdapter.CardViewHold
 
     private List<Card> mArrayList;
     private List<Card> mFilteredList;
+    private Context mContext;
 
-    public CardsAdapter(List<Card> arrayList) {
+    public CardsAdapter(Context context, List<Card> arrayList) {
         mArrayList = arrayList;
         mFilteredList = arrayList;
+        mContext = context;
     }
 
     @Override
@@ -35,8 +40,22 @@ public class CardsAdapter extends RecyclerView.Adapter<CardsAdapter.CardViewHold
 
     @Override
     public void onBindViewHolder(CardsAdapter.CardViewHolder viewHolder, int i) {
-//        viewHolder.cardIV.setImageBitmap(Utils.getBitmap(mFilteredList.get(i).getImgPath()));
-        viewHolder.cardIV.setImageBitmap(mFilteredList.get(i).getImgBitmap());
+        final Card selectedCard = mFilteredList.get(i);
+        viewHolder.cardIV.setImageBitmap(selectedCard.getImgBitmap());
+        viewHolder.item.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Dialog dialog = new Dialog(mContext);
+                dialog.setContentView(R.layout.card_details);
+                TextView text = (TextView) dialog.findViewById(R.id.card_details_data);
+                text.setText(selectedCard.getImgText());
+                ImageView image = (ImageView) dialog.findViewById(R.id.card_details_iv);
+                image.setImageBitmap(selectedCard.getImgBitmap());
+
+                dialog.show();
+
+            }
+        });
     }
 
     @Override
@@ -81,11 +100,13 @@ public class CardsAdapter extends RecyclerView.Adapter<CardsAdapter.CardViewHold
 
     public class CardViewHolder extends RecyclerView.ViewHolder {
         private ImageView cardIV;
+        private View item;
 
         public CardViewHolder(View view) {
             super(view);
 
             cardIV = (ImageView) view.findViewById(R.id.card_iv);
+            item = view;
 
 
         }

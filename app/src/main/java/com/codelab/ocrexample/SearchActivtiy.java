@@ -44,7 +44,7 @@ public class SearchActivtiy extends AppCompatActivity {
             mArrayList.get(i).setImgBitmap(Utils.getBitmap(mArrayList.get(i).getImgPath()));
         }
 
-        mAdapter = new CardsAdapter(mArrayList);
+        mAdapter = new CardsAdapter(this, mArrayList);
         mRecyclerView.setAdapter(mAdapter);
     }
 

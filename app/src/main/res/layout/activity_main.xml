@@ -64,7 +64,7 @@
                 android:layout_marginLeft="20dp"
                 android:background="#448aff"
                 android:clickable="true"
-                android:onClick="processImage"
+                android:onClick="runOCRClick"
                 android:padding="10dp"
                 android:text="Run OCR"
                 android:textColor="#ffffff" />
