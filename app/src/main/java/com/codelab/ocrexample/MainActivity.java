@@ -123,7 +123,6 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
                 mImageBitmap = Utils.getBitmap(mImagePath);
                 mImageView.setImageBitmap(mImageBitmap);
                 mTextView.setVisibility(GONE);
-                OCREditText.setText("");
 
             } else if (resultCode == CropImage.CROP_IMAGE_ACTIVITY_RESULT_ERROR_CODE) {
                 Exception error = result.getError();
@@ -211,7 +210,7 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
         String cardData = rawResult.getText().replace(";", "\n\n");
         cardData = cardData.replace("MECARD:", "");
 
-        OCREditText.setText(cardData);
+        OCREditText.setText(OCREditText.getText() + "\n\n" + cardData);
 
         cameraDialog.dismiss();
     }
@@ -245,7 +244,7 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
                 pd.dismiss();
                 return;
             }
-            OCREditText.setText(OCRresult);
+            OCREditText.setText(OCREditText.getText() + "\n\n" + OCRresult);
             pd.dismiss();
         }
 

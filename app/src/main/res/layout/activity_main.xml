@@ -52,6 +52,7 @@
                 android:layout_gravity="center"
                 android:background="#448aff"
                 android:clickable="true"
+                android:foreground="?android:attr/selectableItemBackground"
                 android:onClick="onSelectImageClick"
                 android:padding="10dp"
                 android:text="Choose Image"
@@ -64,6 +65,7 @@
                 android:layout_marginLeft="20dp"
                 android:background="#448aff"
                 android:clickable="true"
+                android:foreground="?android:attr/selectableItemBackground"
                 android:onClick="runOCRClick"
                 android:padding="10dp"
                 android:text="Run OCR"
@@ -76,10 +78,12 @@
                 android:layout_marginLeft="20dp"
                 android:background="#448aff"
                 android:clickable="true"
+                android:foreground="?android:attr/selectableItemBackground"
                 android:onClick="onScanQRClick"
                 android:padding="10dp"
                 android:text="Scan QR Code"
                 android:textColor="#ffffff" />
+
 
         </LinearLayout>
 
@@ -139,6 +143,7 @@
             android:layout_marginTop="30dp"
             android:layout_weight="1"
             android:background="#448aff"
+            android:foreground="?android:attr/selectableItemBackground"
             android:onClick="submitClick"
             android:text="Save"
             android:textColor="#ffffff" />

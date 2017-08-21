@@ -13,10 +13,24 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:foreground="?android:attr/selectableItemBackground"
         android:gravity="right"
         android:layoutDirection="rtl"
         android:orientation="vertical"
         android:padding="10dp">
+
+        <ImageButton
+            android:id="@+id/delete_ib"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="right"
+            android:layout_margin="10dp"
+            android:background="@android:color/transparent"
+            android:clickable="true"
+            android:foreground="?android:attr/selectableItemBackground"
+            android:padding="10dp"
+            android:src="@drawable/ic_close"
+            android:tint="@color/gray" />
 
         <ImageView
             android:id="@+id/card_iv"
