@@ -15,6 +15,7 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Log;
+import android.util.Patterns;
 import android.util.SparseArray;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -27,11 +28,16 @@ import com.codelab.ocrexample.data.model.Card;
 import com.google.android.gms.vision.Frame;
 import com.google.android.gms.vision.text.TextBlock;
 import com.google.android.gms.vision.text.TextRecognizer;
+import com.google.i18n.phonenumbers.PhoneNumberMatch;
+import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.zxing.Result;
 import com.theartofdev.edmodo.cropper.CropImage;
 import com.theartofdev.edmodo.cropper.CropImageView;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 import me.dm7.barcodescanner.zxing.ZXingScannerView;
 import pl.tajchert.nammu.Nammu;
@@ -244,10 +250,66 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
                 pd.dismiss();
                 return;
             }
-            OCREditText.setText(OCREditText.getText() + "\n\n" + OCRresult);
+            StringBuilder builder = new StringBuilder();
+            String liness[] = OCRresult.split("[\\r\\n]+");
+            for (String line : liness) {
+                if (isValidEmail(line))
+                    builder.append(String.format("Email %s", line + "\n"));
+                else if (isValidPhoneNumber(line))
+                    builder.append(String.format("phone: %s", line) + "\n");
+                else if (isValidURL(line))
+                    builder.append(String.format("URL: %s", line + "\n"));
+                else
+                    builder.append(line + "\n");
+
+                getPhoneNumbers(OCRresult);
+            }
+
+
+            OCREditText.setText(builder.toString());
             pd.dismiss();
         }
 
+    }
+    private boolean isValidEmail(String text) {
+//        if (email.contains("@") && email.contains(".")) {
+//
+//            Log.d("MainActivity", "contains");
+//            return true;
+//        } else
+//            return false;
+
+        String email = text.trim().replaceAll("\\s", "");
+        String pattern = "^[A-Za-z0-9+_.-]+@(.+)$\n";
+        Pattern r = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
+        return Patterns.EMAIL_ADDRESS.matcher(email).matches();
+    }
+
+    private List<String> getPhoneNumbers(String text) {
+        List<String> phoneNumbers = new ArrayList<>();
+        for (PhoneNumberMatch temp : PhoneNumberUtil.getInstance().findNumbers(text, "EG")) {
+            phoneNumbers.add(temp.rawString().replaceAll("\\s+", ""));
+            Log.v("PHONE", temp.rawString().trim());
+        }
+        return phoneNumbers;
+
+
+    }
+
+    private boolean isValidPhoneNumber(String text) {
+        String phone = text.trim().replaceAll("[^0-9]", "");
+        String pattern = "^\\s*(?:\\+?(\\d{1,3}))?[-. (]*(\\d{3})[-. )]*(\\d{3})[-. ]*(\\d{4})(?: *x(\\d+))?\\s*$";
+        Pattern r = Pattern.compile(pattern);
+        return r.matcher(phone).matches();
+    }
+
+    private boolean isValidURL(String URL) {
+        String url = URL.trim().replaceAll("\\s+", "");
+
+        String pattern = "(https?:\\/\\/(?:www\\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\\.[^\\s]{2,}|www\\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\\.[^\\s]{2,}|https?:\\/\\/(?:www\\.|(?!www))[a-zA-Z0-9]\\.[^\\s]{2,}|www\\.[a-zA-Z0-9]\\.[^\\s]{2,})";
+        Pattern r = Pattern.compile(pattern);
+
+        return r.matcher(url).matches();
     }
 
     private ProgressDialog setupProgressDialog() {
