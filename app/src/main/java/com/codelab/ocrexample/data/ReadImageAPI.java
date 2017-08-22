@@ -2,6 +2,7 @@ package com.codelab.ocrexample.data;
 
 import android.content.Context;
 
+import com.codelab.ocrexample.SecretKeys;
 import com.codelab.ocrexample.data.model.SendDataRequest;
 import com.google.gson.Gson;
 
@@ -10,17 +11,17 @@ import org.json.JSONObject;
 
 import java.util.HashMap;
 
-public class ReadImage {
+public class ReadImageAPI {
 
-    public static void ReadImage(Context pContext,
-                             com.android.volley.Response.Listener<JSONObject> responseListener
-                            ,com.android.volley.Response.ErrorListener errorListener
-                            ,boolean cacheEnabled,SendDataRequest sendDataRequest ) {
+    public static void readImage(Context pContext,
+                                 com.android.volley.Response.Listener<JSONObject> responseListener
+                            , com.android.volley.Response.ErrorListener errorListener
+                            , boolean cacheEnabled, SendDataRequest sendDataRequest ) {
 
 
         String tag_json_obj = "reatText";
         String serverUrl = "https://vision.googleapis.com";
-        String servicePath = "/v1/images:annotate?key=none";
+        String servicePath = "/v1/images:annotate?key=" + SecretKeys.API_KEY;
 
         Gson gson = new Gson();
         String json = gson.toJson(sendDataRequest);

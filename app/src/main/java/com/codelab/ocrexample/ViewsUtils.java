@@ -1,0 +1,67 @@
+package com.codelab.ocrexample;
+
+import android.content.Context;
+import android.graphics.Typeface;
+import android.support.annotation.NonNull;
+import android.support.v4.content.ContextCompat;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.EditText;
+import android.widget.ImageButton;
+import android.widget.LinearLayout;
+import android.widget.Spinner;
+import android.widget.TextView;
+
+/**
+ * Created by Mohamed Habib on 22/08/2017.
+ */
+
+public class ViewsUtils {
+
+    @NonNull
+    public static Spinner createTypeSP(Context context, int type) {
+        final Spinner typeSP = new Spinner(context);
+        String array[] = context.getResources().getStringArray(R.array.data_types);
+        typeSP.setAdapter(new ArrayAdapter<>(context, android.R.layout.simple_dropdown_item_1line, array));
+        typeSP.setSelection(type);
+        return typeSP;
+    }
+
+    @NonNull
+    public static EditText createLineET(Context context, String line) {
+        final EditText editText = new EditText(context);
+        editText.setText(line);
+        return editText;
+    }
+
+    @NonNull
+    public static ImageButton createDeleteIB(Context context, View.OnClickListener onClickListener) {
+        ImageButton imageButton = new ImageButton(context);
+        imageButton.setImageResource(R.drawable.ic_remove);
+        imageButton.setBackgroundColor(ContextCompat.getColor(context, android.R.color.transparent));
+        imageButton.setOnClickListener(onClickListener);
+        return imageButton;
+    }
+
+
+    public static TextView createTypeTV(Context context, int type) {
+        final TextView textView = new TextView(context);
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        textView.setLayoutParams(layoutParams);
+
+        String array[] = context.getResources().getStringArray(R.array.data_types);
+        String text = array[type] + ": ";
+        textView.setText(text);
+        textView.setTypeface(null, Typeface.BOLD);
+        return textView;
+    }
+
+    public static TextView createLineTV(Context context, String line) {
+        final TextView textView = new TextView(context);
+        textView.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        String text = line + ": ";
+        textView.setText(text);
+        return textView;
+    }
+}

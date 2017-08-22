@@ -11,28 +11,42 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
-import android.support.annotation.IntDef;
+import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Log;
-import android.util.Patterns;
+import android.util.Pair;
 import android.util.SparseArray;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.android.volley.AuthFailureError;
+import com.android.volley.NetworkError;
+import com.android.volley.NoConnectionError;
+import com.android.volley.ParseError;
+import com.android.volley.Response;
+import com.android.volley.ServerError;
+import com.android.volley.TimeoutError;
+import com.android.volley.VolleyError;
+import com.codelab.ocrexample.data.APIs;
 import com.codelab.ocrexample.data.model.Card;
+import com.codelab.ocrexample.data.model.CardFields;
+import com.codelab.ocrexample.data.model.Field;
 import com.google.android.gms.vision.Frame;
 import com.google.android.gms.vision.text.TextBlock;
 import com.google.android.gms.vision.text.TextRecognizer;
-import com.google.i18n.phonenumbers.PhoneNumberMatch;
-import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.zxing.Result;
 import com.theartofdev.edmodo.cropper.CropImage;
 import com.theartofdev.edmodo.cropper.CropImageView;
@@ -43,69 +57,79 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-import java.util.regex.Pattern;
 
 import me.dm7.barcodescanner.zxing.ZXingScannerView;
 import pl.tajchert.nammu.Nammu;
 import pl.tajchert.nammu.PermissionCallback;
 
 import static android.view.View.GONE;
+import static com.codelab.ocrexample.data.model.Field.Email;
+import static com.codelab.ocrexample.data.model.Field.Name;
+import static com.codelab.ocrexample.data.model.Field.Other;
+import static com.codelab.ocrexample.data.model.Field.Phone;
 
 public class MainActivity extends AppCompatActivity implements ZXingScannerView.ResultHandler {
-    public static final int Address = 0;
-    public static final int Email = 1;
-    public static final int Job = 2;
-    public static final int Name = 3;
-    public static final int Other = 4;
-    public static final int Phone = 5;
-    public static final int URL = 6;
+
     Bitmap mImageBitmap;
-    //*************//
     ImageView mImageView;
     TextView mTextView;
-    EditText OCREditText;
-    EditText OCREditText_GV;
-    String mImagePath;
+    EditText ocrMobileVisionET;
+    EditText ocrGoogleVisionET;
     EditText mNotesET;
-    LinearLayout containerLL;
+    LinearLayout fieldsContainerLL;
+
     Dialog cameraDialog;
     private ZXingScannerView mScannerView;
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.main_menu, menu);
-        return true;
-    }
+    String mImagePath;
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.search_btn:
-                startActivity(new Intent(MainActivity.this, SearchActivtiy.class));
-                break;
-            default:
-                break;
-        }
-        return true;
-    }
+    //holds the fields to get the latest data onSubmit
+    List<Pair<Spinner, EditText>> fieldViews = new ArrayList<>();
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Nammu.init(this);
-        mImageView = (ImageView) findViewById(R.id.imageView);
-        mTextView = (TextView) findViewById(R.id.textView);
-        OCREditText = (EditText) findViewById(R.id.OCREditText);
-        OCREditText_GV = (EditText) findViewById(R.id.OCREditText_GV);
-        mNotesET = (EditText) findViewById(R.id.notes);
-        mScannerView = new ZXingScannerView(this);   // Programmatically initialize the scanner view
-        containerLL = (LinearLayout) findViewById(R.id.data_container);
+
+        initViews();
+
+        checkForPermissions();
+
+        //enable scrolling at edit text inside scroll view
+        ocrMobileVisionET.setOnTouchListener(new View.OnTouchListener() {
+            public boolean onTouch(View v, MotionEvent event) {
+                v.getParent().requestDisallowInterceptTouchEvent(true);
+                switch (event.getAction() & MotionEvent.ACTION_MASK) {
+                    case MotionEvent.ACTION_UP:
+                        v.getParent().requestDisallowInterceptTouchEvent(false);
+                        break;
+                }
+                return false;
+            }
+        });
+
+        //enable scrolling at edit text inside scroll view
+        ocrGoogleVisionET.setOnTouchListener(new View.OnTouchListener() {
+            public boolean onTouch(View v, MotionEvent event) {
+                v.getParent().requestDisallowInterceptTouchEvent(true);
+                switch (event.getAction() & MotionEvent.ACTION_MASK) {
+                    case MotionEvent.ACTION_UP:
+                        v.getParent().requestDisallowInterceptTouchEvent(false);
+                        break;
+                }
+                return false;
+            }
+        });
+
+    }
+
+    private void checkForPermissions() {
         int storagePermissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
         if (storagePermissionCheck != PackageManager.PERMISSION_GRANTED) {
             Nammu.askForPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE, new PermissionCallback() {
@@ -131,23 +155,38 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
                 }
             });
         }
+    }
 
-        OCREditText.setOnTouchListener(new View.OnTouchListener() {
-            public boolean onTouch(View v, MotionEvent event) {
-                v.getParent().requestDisallowInterceptTouchEvent(true);
-                switch (event.getAction() & MotionEvent.ACTION_MASK) {
-                    case MotionEvent.ACTION_UP:
-                        v.getParent().requestDisallowInterceptTouchEvent(false);
-                        break;
-                }
-                return false;
-            }
-        });
-
+    private void initViews() {
+        mImageView = (ImageView) findViewById(R.id.imageView);
+        mTextView = (TextView) findViewById(R.id.textView);
+        ocrMobileVisionET = (EditText) findViewById(R.id.ocr_mv_et);
+        ocrGoogleVisionET = (EditText) findViewById(R.id.ocr_gv_et);
+        mNotesET = (EditText) findViewById(R.id.notes);
+        mScannerView = new ZXingScannerView(this);   // Programmatically initialize the scanner view
+        fieldsContainerLL = (LinearLayout) findViewById(R.id.data_container);
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.search_btn:
+                startActivity(new Intent(MainActivity.this, SearchActivtiy.class));
+                break;
+            default:
+                break;
+        }
+        return true;
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         Nammu.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
@@ -160,7 +199,6 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
             if (resultCode == RESULT_OK) {
                 Uri resultUri = result.getUri();
                 mImagePath = resultUri.getPath();
-
                 try {
                     File src = new File(mImagePath);
                     Utils.copyFile(new File(mImagePath), new File(Environment.getExternalStorageDirectory() + "/OCR/" + src.getName()));
@@ -181,39 +219,52 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
     public void runOCRClick_MV(View view) {
         if (checkForImageCapture(view)) return;
 
-        OCREditText.setText("");
-        MyAsyncTask myAsyncTask = new MyAsyncTask(OCREditText);
-        myAsyncTask.execute();
+        ocrMobileVisionET.setText("");
+        new MobileVisionAsyncTask().execute();
     }
 
     public void RunOCRClick_GV(View view) {
         if (checkForImageCapture(view)) return;
 
-        OCREditText_GV.setText("");
-
-        imageData(mImageBitmap);
-
-//        MyAsyncTask myAsyncTask = new MyAsyncTask(OCREditText_GV);
-//        myAsyncTask.execute();
+        ocrGoogleVisionET.setText("");
+        executeGoogleCloudOCR();
     }
 
     public void onSelectImageClick(View view) {
-        CropImage.activity(null)
-                .setGuidelines(CropImageView.Guidelines.ON)
-                .start(MainActivity.this);
+        CropImage.activity(null).setGuidelines(CropImageView.Guidelines.ON).start(MainActivity.this);
     }
 
     public void submitClick(View view) {
         if (checkForImageCapture(view)) return;
         if (checkForCardText(view)) return;
         //create Card object and save to db
-        Card card = new Card(mImagePath, OCREditText.getText().toString(), mNotesET.getText().toString(), UUID.randomUUID());
+        CardFields cardFields = getCardFields();
+        Card card = new Card(mImagePath, ocrMobileVisionET.getText().toString(), ocrGoogleVisionET.getText().toString()
+                , mNotesET.getText().toString(), UUID.randomUUID(), cardFields.getAddresses(), cardFields.getEmails()
+                , cardFields.getJobs(), cardFields.getNames(), cardFields.getPhones(), cardFields.getUrls(), cardFields.getOthers());
         card.insert();
 
-        OCREditText.setText("");
+        ocrMobileVisionET.setText("");
+        ocrGoogleVisionET.setText("");
+        mNotesET.setText("");
         mImageView.setImageDrawable(null);
         mImagePath = null;
         mImageBitmap = null;
+        fieldViews.clear();
+        fieldsContainerLL.removeAllViewsInLayout();
+    }
+
+    @NonNull
+    private CardFields getCardFields() {
+        CardFields cardFields = new CardFields();
+        for (Pair spinnerEdiText : fieldViews) {
+            Spinner spinner = (Spinner) spinnerEdiText.first;
+            EditText editText = (EditText) spinnerEdiText.second;
+            int type = spinner.getSelectedItemPosition();
+            String line = editText.getText().toString();
+            cardFields.createField(type, line);
+        }
+        return cardFields;
     }
 
     private boolean checkForImageCapture(View view) {
@@ -230,7 +281,7 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
     }
 
     private boolean checkForCardText(View view) {
-        if (TextUtils.isEmpty(OCREditText.getText())) {
+        if (TextUtils.isEmpty(ocrMobileVisionET.getText()) && TextUtils.isEmpty(ocrGoogleVisionET.getText())) {
             Snackbar.make(view, "Card doesn't have text, Add some info", Snackbar.LENGTH_SHORT).show();
             return true;
         }
@@ -259,6 +310,7 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
         }
     }
 
+    //QR result
     @Override
     public void handleResult(Result rawResult) {
         // Do something with the result here
@@ -268,142 +320,25 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
         String cardData = rawResult.getText().replace(";", "\n\n");
         cardData = cardData.replace("MECARD:", "");
 
+        ocrMobileVisionET.setText(cardData);
+
+        List<Field> fieldList = new ArrayList<>();
+
         String data[] = cardData.split("[\\r?\\n]+"); // split result lines
-        // Start data parsing
-        containerLL.removeAllViewsInLayout();
-        OCREditText_GV.setText("");
         for (String s : data) {
             if (s.startsWith("N:"))
-                addRow(Name, s.substring(s.indexOf(":") + 1));
-
+                fieldList.add(new Field(Name, s.substring(s.indexOf(":") + 1)));
             else if (s.startsWith("TEL:"))
-                addRow(Phone, s.substring(s.indexOf(":") + 1));
+                fieldList.add(new Field(Phone, s.substring(s.indexOf(":") + 1)));
             else if (s.startsWith("ORG:"))
-                addRow(Other, s.substring(s.indexOf(":") + 1));
+                fieldList.add(new Field(Other, s.substring(s.indexOf(":") + 1)));
             else if (s.startsWith("EMAIL:"))
-                addRow(Email, s.substring(s.indexOf(":") + 1));
-
+                fieldList.add(new Field(Email, s.substring(s.indexOf(":") + 1)));
         }
-        // end data parsing
-//        OCREditText.setText(OCREditText.getText() + "\n" + cardData);
 
+        addRows(fieldList);
 
         cameraDialog.dismiss();
-    }
-
-    private boolean isValidEmail(String text) {
-//        if (email.contains("@") && email.contains(".")) {
-//
-//            Log.d("MainActivity", "contains");
-//            return true;
-//        } else
-//            return false;
-
-
-    String removeArabicText(String text) {
-        return text.replaceAll("\\w", "");
-    }
-
-    private class MyAsyncTask extends AsyncTask<Void, Void, String> {
-        ProgressDialog pd;
-        EditText resultText;
-
-        public MyAsyncTask(EditText textView) {
-            super();
-            resultText = textView;
-        }
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            pd = setupProgressDialog();
-        }
-
-        protected String doInBackground(Void... args) {
-            StringBuilder OCRresult = new StringBuilder();
-            if (mImageBitmap != null) {
-                try {
-                    TextRecognizer textRecognizer = new TextRecognizer.Builder(MainActivity.this).build();
-                    SparseArray<TextBlock> textBlocks = textRecognizer.detect
-                            (new Frame.Builder().setBitmap(mImageBitmap).build());
-
-                    for (int i = 0; i < textBlocks.size(); i++) {
-                        OCRresult.append(textBlocks.valueAt(i).getValue()).append("\n").append("\n");
-                    }
-                } catch (Exception e) {
-                }
-            }
-            return OCRresult.toString();
-        }
-
-        protected void onPostExecute(String OCRresult) {
-            if (OCRresult == null) {
-                pd.dismiss();
-                return;
-            }
-//            urlET.setText("");
-//            emailEt.setText("");
-            StringBuilder builder = new StringBuilder();
-            String numbers = getPhoneNumbers(OCRresult);
-
-            String liness[] = OCRresult.split("[\\r\\n/]+");
-            for (String line : liness) {
-                if (isValidEmail(line)) {
-                    addRow(Email, line);
-                } else if (isValidURL(line)) {
-                    addRow(URL, getAccuString(line));
-
-                } else if (!numbers.contains(line.trim())) {
-                    addRow(Other, getAccuString(line));
-
-                }
-
-            }
-            Log.v("Phone", numbers);
-
-            OCREditText.setText(builder.toString());
-//            otherET.setText(builder.toString());
-//            otherSr.setSelection(3);
-            pd.dismiss();
-        }
-
-    }
-    private boolean isValidEmail(String text) {
-        String email = text.trim().replaceAll("\\s", "");
-        String pattern = "^[A-Za-z0-9+_.-]+@(.+)$\n";
-        Pattern r = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
-        return Patterns.EMAIL_ADDRESS.matcher(email).matches();
-    }
-
-    private String getPhoneNumbers(String text) {
-        StringBuilder stringBuilder = new StringBuilder();
-
-
-        for (PhoneNumberMatch temp : PhoneNumberUtil.getInstance().findNumbers(text, "EG")) {
-
-
-            stringBuilder.append(getAccuString(PhoneNumberUtil.getInstance().format(temp.number(), PhoneNumberUtil.PhoneNumberFormat.NATIONAL)) + "\n");
-            addRow(Phone, getAccuString(PhoneNumberUtil.getInstance().format(temp.number(), PhoneNumberUtil.PhoneNumberFormat.NATIONAL)));
-        }
-
-        return stringBuilder.toString();
-
-
-    }
-
-    private boolean isValidPhoneNumber(String text) {
-        String phone = text.trim().replaceAll("[^0-9]", "");
-        String pattern = "^\\s*(?:\\+?(\\d{1,3}))?[-. (]*(\\d{3})[-. )]*(\\d{3})[-. ]*(\\d{4})(?: *x(\\d+))?\\s*$";
-        Pattern r = Pattern.compile(pattern);
-        return r.matcher(phone).matches();
-    }
-
-    private boolean isValidURL(String URL) {
-        String url = URL.trim().replaceAll("\\s+", "");
-        String pattern = "(https?:\\/\\/(?:www\\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\\.[^\\s]{2,}|www\\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\\.[^\\s]{2,}|https?:\\/\\/(?:www\\.|(?!www))[a-zA-Z0-9]\\.[^\\s]{2,}|www\\.[a-zA-Z0-9]\\.[^\\s]{2,})";
-        Pattern r = Pattern.compile(pattern);
-
-        return r.matcher(url).matches();
     }
 
     private ProgressDialog setupProgressDialog() {
@@ -414,146 +349,99 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
         });
     }
 
-    private void imageData(Bitmap bitmap) {
-
-        List<Request> requests = new ArrayList<Request>();
-        List<Feature> features = new ArrayList<Feature>();
+    private void executeGoogleCloudOCR() {
         List<String> languages = Arrays.asList("en");
+        String base64Image = Utils.bitmapToBase64(mImageBitmap);
 
-        Request request = new Request();
-        Feature feature = new Feature();
-        Image image = new Image();
-        ImageContext imageContext = new ImageContext();
+        if (NetworkUtilies.isConnectingToInternet(this)) {
+            final ProgressDialog pd = setupProgressDialog();
 
-        image.setContent(Utils.bitmapToBase64(bitmap));
-        feature.setType("TEXT_DETECTION");
-        imageContext.setLanguageHints(languages);
+            APIs.callGoogleCloudOCRAPI(this, languages, base64Image, new Response.Listener<JSONObject>() {
+                @Override
+                public void onResponse(JSONObject response) {
+                    pd.dismiss();
+                    Log.d("onResponse", "Response");
+                    if (response != null) {
+                        try {
+                            Log.d("onResponse", "Response in not Null   " + response.toString());
+                            JSONArray responsesJsonArray = response.getJSONArray("responses");
+                            if (responsesJsonArray.length() > 0) {
+                                JSONObject jsonObject = responsesJsonArray.getJSONObject(0);
+                                JSONArray textAnnotationsJsonArray = jsonObject.getJSONArray("textAnnotations");
+                                if (textAnnotationsJsonArray.length() > 0) {
+                                    JSONObject textAnnotationJsonObject = textAnnotationsJsonArray.getJSONObject(0);
+                                    String description = textAnnotationJsonObject.getString("description");
+                                    Log.d("onResponse", "description: " + description);
 
-        request.setFeatures(features);
-        request.setImage(image);
-        request.setImageContext(imageContext);
+                                    ocrGoogleVisionET.setText(description);
 
-        features.add(feature);
-        requests.add(request);
-
-        SendDataRequest sendDataRequest = new SendDataRequest();
-
-        sendDataRequest.setRequests(requests);
-
-        try {
-            postRequest(sendDataRequest);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void postRequest(final SendDataRequest sendDataRequest) throws JSONException {
-
-        Response.Listener successListener = new Response.Listener<JSONObject>() {
-            @Override
-            public void onResponse(JSONObject response) {
-
-                Log.d("onResponse", "Response");
-
-                if (response != null) {
-                    try {
-                        Log.d("onResponse", "Response in not Null   " + response.toString());
-                        JSONArray responsesJsonArray = response.getJSONArray("responses");
-                        if (responsesJsonArray.length() > 0) {
-                            JSONObject jsonObject = responsesJsonArray.getJSONObject(0);
-                            JSONArray textAnnotationsJsonArray = jsonObject.getJSONArray("textAnnotations");
-                            if (textAnnotationsJsonArray.length() > 0) {
-                                JSONObject textAnnotationJsonObject = textAnnotationsJsonArray.getJSONObject(0);
-                                String description = textAnnotationJsonObject.getString("description");
-                                Log.d("onResponse", "description: " + description);
-                                OCREditText_GV.setText(description);
+                                    List<Field> fieldList = FieldsParsing.parseOCRResult(description);
+                                    addRows(fieldList);
+                                }
                             }
+                        } catch (JSONException e) {
+                            e.printStackTrace();
                         }
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-                } else
-                    Log.d("onResponse", "Response is Null");
+                    } else
+                        Log.d("onResponse", "Response is Null");
 
-            }
-        };
-        Response.ErrorListener errorListener = new Response.ErrorListener() {
-
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                if (error instanceof TimeoutError || error instanceof NoConnectionError) {
-                    Toast.makeText(MainActivity.this, "TimeoutError || NoConnectionError", Toast.LENGTH_LONG).show();
-                } else if (error instanceof AuthFailureError) {
-                    Toast.makeText(MainActivity.this, "AuthFailureError", Toast.LENGTH_LONG).show();
-                } else if (error instanceof ServerError) {
-                    Toast.makeText(MainActivity.this, "ServerError", Toast.LENGTH_LONG).show();
-                } else if (error instanceof NetworkError) {
-                    Toast.makeText(MainActivity.this, "NetworkError", Toast.LENGTH_LONG).show();
-                } else if (error instanceof ParseError) {
-                    Toast.makeText(MainActivity.this, "ParseError", Toast.LENGTH_LONG).show();
                 }
-            }
-        };
+            }, new Response.ErrorListener() {
+                @Override
+                public void onErrorResponse(VolleyError error) {
+                    pd.dismiss();
 
-//        if (NetworkUtilies.isConnectingToInternet(LoginActivity.this)) {
-//            NetworkUtilies.startLoadingDialog(LoginActivity.this);
-        ReadImage.ReadImage(MainActivity.this, successListener, errorListener, false, sendDataRequest);
-//        }
-//        else {
-//            getAlertDialog(LoginActivity.this, null,
-//                    getString(R.string.no_internet), null,
-//                    false, null).show();
-//        }
-    }
-
-    private String getAccuString(String line) {
-        return line.replaceAll("\\s+", "");
-    }
-
-    private void addRow(@DataType int type, String text) {
-
-        final LinearLayout layout = new LinearLayout(MainActivity.this);
-        layout.setOrientation(LinearLayout.HORIZONTAL);
-        Spinner spinner = new Spinner(this);
-        String array[] = getResources().getStringArray(R.array.data_types);
-        spinner.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, array));
-        EditText editText = new EditText(this);
-        editText.setText(text);
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        layout.setLayoutParams(params);
-        spinner.setSelection(type);
-        ImageButton imageButton = new ImageButton(MainActivity.this);
-        imageButton.setImageResource(R.drawable.ic_remove);
-        imageButton.setBackgroundColor(ContextCompat.getColor(MainActivity.this, android.R.color.transparent));
-
-        layout.addView(spinner);
-        layout.addView(editText);
-        layout.addView(imageButton);
-        imageButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                containerLL.removeView(layout);
-            }
-        });
-        containerLL.addView(layout);
-//        return layout;
-    }
-
-    // User Data-field types
-    //*************//
-    @Retention(RetentionPolicy.SOURCE)
-    @IntDef({Address, Email, Job, Name, Other, Phone, URL})
-    public @interface DataType {
-    }
-
-    private class MyAsyncTask extends AsyncTask<Void, Void, String> {
-        ProgressDialog pd;
-        EditText resultText;
-
-        public MyAsyncTask(EditText textView) {
-            super();
-            resultText = textView;
+                    if (error instanceof TimeoutError || error instanceof NoConnectionError) {
+                        Toast.makeText(MainActivity.this, "TimeoutError || NoConnectionError", Toast.LENGTH_LONG).show();
+                    } else if (error instanceof AuthFailureError) {
+                        Toast.makeText(MainActivity.this, "AuthFailureError", Toast.LENGTH_LONG).show();
+                    } else if (error instanceof ServerError) {
+                        Toast.makeText(MainActivity.this, "ServerError", Toast.LENGTH_LONG).show();
+                    } else if (error instanceof NetworkError) {
+                        Toast.makeText(MainActivity.this, "NetworkError", Toast.LENGTH_LONG).show();
+                    } else if (error instanceof ParseError) {
+                        Toast.makeText(MainActivity.this, "ParseError", Toast.LENGTH_LONG).show();
+                    }
+                }
+            });
+        } else {
+            Snackbar.make(mImageView, "No Internet Connection", Snackbar.LENGTH_LONG).show();
         }
+    }
+
+    private void addRows(List<Field> fieldList) {
+        fieldsContainerLL.removeAllViewsInLayout();
+
+        for (final Field field : fieldList) {
+            final LinearLayout layout = new LinearLayout(MainActivity.this);
+            layout.setOrientation(LinearLayout.HORIZONTAL);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            layout.setLayoutParams(params);
+
+            Spinner typeSP = ViewsUtils.createTypeSP(this, field.getType());
+            EditText lineET = ViewsUtils.createLineET(this, field.getLine());
+
+            final Pair<Spinner, EditText> spinnerEditTextPair = new Pair<>(typeSP, lineET);
+            ImageButton deleteIB = ViewsUtils.createDeleteIB(this, new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    fieldsContainerLL.removeView(layout);
+                    fieldViews.remove(spinnerEditTextPair);
+                }
+            });
+            layout.addView(typeSP);
+            layout.addView(lineET);
+            layout.addView(deleteIB);
+
+            fieldsContainerLL.addView(layout);
+
+            fieldViews.add(spinnerEditTextPair);
+        }
+    }
+
+
+    private class MobileVisionAsyncTask extends AsyncTask<Void, Void, String> {
+        ProgressDialog pd;
 
         @Override
         protected void onPreExecute() {
@@ -562,48 +450,30 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
         }
 
         protected String doInBackground(Void... args) {
-            StringBuilder OCRresult = new StringBuilder();
+            StringBuilder ocrResult = new StringBuilder();
             if (mImageBitmap != null) {
                 try {
                     TextRecognizer textRecognizer = new TextRecognizer.Builder(MainActivity.this).build();
-                    SparseArray<TextBlock> textBlocks = textRecognizer.detect
-                            (new Frame.Builder().setBitmap(mImageBitmap).build());
-
+                    SparseArray<TextBlock> textBlocks = textRecognizer.detect(new Frame.Builder().setBitmap(mImageBitmap).build());
                     for (int i = 0; i < textBlocks.size(); i++) {
-                        OCRresult.append(textBlocks.valueAt(i).getValue()).append("\n").append("\n");
+                        ocrResult.append(textBlocks.valueAt(i).getValue()).append("\n").append("\n");
                     }
                 } catch (Exception e) {
                 }
             }
-            return OCRresult.toString();
+            return ocrResult.toString();
         }
 
-        protected void onPostExecute(String OCRresult) {
-            if (OCRresult == null) {
+        protected void onPostExecute(String ocrResult) {
+            if (ocrResult == null) {
                 pd.dismiss();
                 return;
             }
-            containerLL.removeAllViewsInLayout();
+            ocrMobileVisionET.setText(ocrResult);
 
-            StringBuilder builder = new StringBuilder();
-            String numbers = getPhoneNumbers(OCRresult);
+            List<Field> fieldList = FieldsParsing.parseOCRResult(ocrResult);
+            addRows(fieldList);
 
-            String liness[] = OCRresult.split("[\\r\\n/]+");
-            for (String line : liness) {
-                if (isValidEmail(line)) {
-                    addRow(Email, line);
-                } else if (isValidURL(line)) {
-                    addRow(URL, getAccuString(line));
-
-                } else if (!numbers.contains(line.trim())) {
-                    addRow(Other, getAccuString(line));
-
-                }
-
-            }
-            Log.v("Phone", numbers);
-
-            OCREditText.setText(builder.toString());
             pd.dismiss();
         }
 

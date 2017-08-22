@@ -38,16 +38,12 @@
         </FrameLayout>
 
         <LinearLayout
-            android:id="@+id/OCRButtonContainer"
             android:layout_width="wrap_content"
             android:layout_height="0dp"
             android:layout_gravity="center"
             android:layout_marginTop="20dp"
             android:layout_weight="1"
-            android:clickable="true"
-            android:orientation="horizontal"
-
-            android:weightSum="4">
+            android:orientation="horizontal">
 
             <Button
                 android:layout_width="0dp"
@@ -89,6 +85,7 @@
                 android:padding="10dp"
                 android:text="Scan OCR GV"
                 android:textColor="#ffffff" />
+
             <Button
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -101,7 +98,6 @@
                 android:padding="10dp"
                 android:text="Scan QR Code"
                 android:textColor="#ffffff" />
-
 
         </LinearLayout>
 
@@ -120,12 +116,12 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Extracted data Mobile Vision: "
+                android:text="Extracted data Mobile Vision - QE: "
                 android:textColor="#000000"
                 android:textStyle="bold" />
 
             <EditText
-                android:id="@+id/OCREditText"
+                android:id="@+id/ocr_mv_et"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
@@ -133,12 +129,11 @@
                 android:gravity="top"
                 android:lines="10"
                 android:maxLines="10"
-                android:paddingLeft="20dp"
                 android:overScrollMode="always"
+                android:paddingLeft="20dp"
                 android:paddingRight="20dp"
                 android:scrollbarStyle="insideInset"
                 android:scrollbars="vertical"
-                android:text="dadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadad"
                 android:textSize="16sp" />
         </LinearLayout>
 
@@ -161,7 +156,7 @@
                 android:textStyle="bold" />
 
             <EditText
-                android:id="@+id/OCREditText_GV"
+                android:id="@+id/ocr_gv_et"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
@@ -174,26 +169,20 @@
                 android:scrollbars="vertical"
                 android:textSize="16sp" />
 
-            <!--<TextView-->
-                <!--android:layout_width="wrap_content"-->
-                <!--android:layout_height="wrap_content"-->
-                <!--android:layout_marginTop="10dp"-->
-                <!--android:text="Notes: "-->
-                <!--android:textColor="#000000"-->
-                <!--android:textStyle="bold" />-->
-
-            <!--<EditText-->
-                <!--android:id="@+id/notes"-->
-                <!--android:layout_width="match_parent"-->
-                <!--android:layout_height="wrap_content"-->
-                <!--android:lines="4" />-->
         </LinearLayout>
 
-        <LinearLayout
-            android:id="@+id/data_container"
+        <ScrollView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical" />
+            android:layout_height="wrap_content">
+
+            <LinearLayout
+                android:id="@+id/data_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+        </ScrollView>
+
         <LinearLayout
             android:id="@+id/OCRTextContainer_Notes"
             android:layout_width="match_parent"
@@ -205,13 +194,13 @@
             android:orientation="vertical"
             android:padding="10dp">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:text="Notes: "
-            android:textColor="#000000"
-            android:textStyle="bold" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="Notes: "
+                android:textColor="#000000"
+                android:textStyle="bold" />
 
             <EditText
                 android:id="@+id/notes"

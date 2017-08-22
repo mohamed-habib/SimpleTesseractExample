@@ -12,6 +12,7 @@ import android.widget.Filter;
 import android.widget.Filterable;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.codelab.ocrexample.data.model.Card;
@@ -20,6 +21,13 @@ import com.raizlabs.android.dbflow.sql.language.SQLite;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static com.codelab.ocrexample.data.model.Field.Address;
+import static com.codelab.ocrexample.data.model.Field.Email;
+import static com.codelab.ocrexample.data.model.Field.Job;
+import static com.codelab.ocrexample.data.model.Field.Name;
+import static com.codelab.ocrexample.data.model.Field.Phone;
+import static com.codelab.ocrexample.data.model.Field.URL;
 
 /**
  * Created by Mohamed Habib on 15/08/2017.
@@ -76,15 +84,61 @@ public class CardsAdapter extends RecyclerView.Adapter<CardsAdapter.CardViewHold
             public void onClick(View v) {
                 Dialog dialog = new Dialog(mContext);
                 dialog.setContentView(R.layout.card_details);
-                TextView text = (TextView) dialog.findViewById(R.id.card_details_data);
-                text.setText(selectedCard.getImgText());
+                TextView ocrMobileVisionTV = (TextView) dialog.findViewById(R.id.card_details_ocr_mv_data);
+                ocrMobileVisionTV.setText(selectedCard.getImgTextMobileVision());
+                TextView ocrGoogleCloudTV = (TextView) dialog.findViewById(R.id.card_details_ocr_gc_data);
+                ocrGoogleCloudTV.setText(selectedCard.getImgTextGoogleCloud());
+                TextView notesTV = (TextView) dialog.findViewById(R.id.card_details_notes);
+                notesTV.setText(selectedCard.getNotes());
                 ImageView image = (ImageView) dialog.findViewById(R.id.card_details_iv);
                 image.setImageBitmap(selectedCard.getImgBitmap());
+
+                LinearLayout fieldsContainerLL = (LinearLayout) dialog.findViewById(R.id.card_details_fields_container);
+                for (String address : selectedCard.getAddresses()) {
+                    if (address.length() > 0)
+                        addRow(fieldsContainerLL, Address, address);
+                }
+                for (String email : selectedCard.getEmails()) {
+                    if (email.length() > 0)
+                        addRow(fieldsContainerLL, Email, email);
+                }
+
+                for (String job : selectedCard.getJobs()) {
+                    if (job.length() > 0)
+                        addRow(fieldsContainerLL, Job, job);
+                }
+
+                for (String name : selectedCard.getNames()) {
+                    if (name.length() > 0)
+                        addRow(fieldsContainerLL, Name, name);
+                }
+
+                for (String phone : selectedCard.getPhones()) {
+                    if (phone.length() > 0)
+                        addRow(fieldsContainerLL, Phone, phone);
+                }
+
+                for (String url : selectedCard.getUrls()) {
+                    if (url.length() > 0)
+                        addRow(fieldsContainerLL, URL, url);
+                }
 
                 dialog.show();
 
             }
         });
+    }
+
+    private void addRow(LinearLayout fieldsContainerLL, int type, String line) {
+        final LinearLayout layout = new LinearLayout(mContext);
+        layout.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        layout.setLayoutParams(params);
+
+        layout.addView(ViewsUtils.createTypeTV(mContext, type));
+        layout.addView(ViewsUtils.createLineTV(mContext, line));
+
+        fieldsContainerLL.addView(layout);
     }
 
     @Override
@@ -107,7 +161,7 @@ public class CardsAdapter extends RecyclerView.Adapter<CardsAdapter.CardViewHold
                     ArrayList<Card> filteredList = new ArrayList<>();
 
                     for (Card card : mArrayList) {
-                        if (card.getImgText().toLowerCase().contains(charString) || card.getNotes().toLowerCase().contains(charString)) {
+                        if (card.getImgTextGoogleCloud().toLowerCase().contains(charString) || card.getNotes().toLowerCase().contains(charString)) {
                             filteredList.add(card);
                         }
                     }
