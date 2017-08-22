@@ -20,7 +20,7 @@ public class ReadImage {
 
         String tag_json_obj = "reatText";
         String serverUrl = "https://vision.googleapis.com";
-        String servicePath = "/v1/images:annotate?key=AIzaSyCxEHbDREB9gJfiSjHN1TDiL79g_GI4anY";
+        String servicePath = "/v1/images:annotate?key=none";
 
         Gson gson = new Gson();
         String json = gson.toJson(sendDataRequest);

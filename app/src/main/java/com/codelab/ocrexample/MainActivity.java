@@ -10,6 +10,8 @@ import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
+import android.support.annotation.IntDef;
 import android.support.design.widget.Snackbar;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -21,6 +23,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -34,6 +37,14 @@ import com.google.zxing.Result;
 import com.theartofdev.edmodo.cropper.CropImage;
 import com.theartofdev.edmodo.cropper.CropImageView;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.File;
+import java.io.IOException;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -46,13 +57,6 @@ import pl.tajchert.nammu.PermissionCallback;
 import static android.view.View.GONE;
 
 public class MainActivity extends AppCompatActivity implements ZXingScannerView.ResultHandler {
-    // User Data-field types
-        //*************//
-    @Retention(RetentionPolicy.SOURCE)
-    @IntDef({Address, Email, Job, Name, Other, Phone, URL})
-    public @interface DataType {
-    }
-
     public static final int Address = 0;
     public static final int Email = 1;
     public static final int Job = 2;
@@ -60,9 +64,8 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
     public static final int Other = 4;
     public static final int Phone = 5;
     public static final int URL = 6;
-         //*************//
-
     Bitmap mImageBitmap;
+    //*************//
     ImageView mImageView;
     TextView mTextView;
     EditText OCREditText;
@@ -70,8 +73,8 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
     String mImagePath;
     EditText mNotesET;
     LinearLayout containerLL;
+    Dialog cameraDialog;
     private ZXingScannerView mScannerView;
-
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -234,8 +237,6 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
         return false;
     }
 
-    Dialog cameraDialog;
-
     public void onScanQRClick(View view) {
         mScannerView.setResultHandler(this); // Register ourselves as a handler for scan results.
         mScannerView.startCamera(0);          // Start camera
@@ -269,6 +270,8 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
 
         String data[] = cardData.split("[\\r?\\n]+"); // split result lines
         // Start data parsing
+        containerLL.removeAllViewsInLayout();
+        OCREditText_GV.setText("");
         for (String s : data) {
             if (s.startsWith("N:"))
                 addRow(Name, s.substring(s.indexOf(":") + 1));
@@ -287,6 +290,14 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
 
         cameraDialog.dismiss();
     }
+
+    private boolean isValidEmail(String text) {
+//        if (email.contains("@") && email.contains(".")) {
+//
+//            Log.d("MainActivity", "contains");
+//            return true;
+//        } else
+//            return false;
 
 
     String removeArabicText(String text) {
@@ -372,8 +383,9 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
 
 
             stringBuilder.append(getAccuString(PhoneNumberUtil.getInstance().format(temp.number(), PhoneNumberUtil.PhoneNumberFormat.NATIONAL)) + "\n");
+            addRow(Phone, getAccuString(PhoneNumberUtil.getInstance().format(temp.number(), PhoneNumberUtil.PhoneNumberFormat.NATIONAL)));
         }
-        addRow(Phone, stringBuilder.toString());
+
         return stringBuilder.toString();
 
 
@@ -402,28 +414,6 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
         });
     }
 
-    private String getAccuString(String line) {
-        return line.replaceAll("\\s+", "");
-    }
-
-    private void addRow(@DataType int type, String text) {
-
-
-        LinearLayout layout = new LinearLayout(MainActivity.this);
-        layout.setOrientation(LinearLayout.HORIZONTAL);
-        Spinner spinner = new Spinner(this);
-        String array[] = getResources().getStringArray(R.array.data_types);
-        spinner.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, array));
-        EditText editText = new EditText(this);
-        editText.setText(text);
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        layout.setLayoutParams(params);
-        spinner.setSelection(type);
-        layout.addView(spinner);
-        layout.addView(editText);
-        containerLL.addView(layout);
-//        return layout;
-    }
     private void imageData(Bitmap bitmap) {
 
         List<Request> requests = new ArrayList<Request>();
@@ -514,6 +504,109 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
 //                    getString(R.string.no_internet), null,
 //                    false, null).show();
 //        }
+    }
+
+    private String getAccuString(String line) {
+        return line.replaceAll("\\s+", "");
+    }
+
+    private void addRow(@DataType int type, String text) {
+
+        final LinearLayout layout = new LinearLayout(MainActivity.this);
+        layout.setOrientation(LinearLayout.HORIZONTAL);
+        Spinner spinner = new Spinner(this);
+        String array[] = getResources().getStringArray(R.array.data_types);
+        spinner.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, array));
+        EditText editText = new EditText(this);
+        editText.setText(text);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        layout.setLayoutParams(params);
+        spinner.setSelection(type);
+        ImageButton imageButton = new ImageButton(MainActivity.this);
+        imageButton.setImageResource(R.drawable.ic_remove);
+        imageButton.setBackgroundColor(ContextCompat.getColor(MainActivity.this, android.R.color.transparent));
+
+        layout.addView(spinner);
+        layout.addView(editText);
+        layout.addView(imageButton);
+        imageButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                containerLL.removeView(layout);
+            }
+        });
+        containerLL.addView(layout);
+//        return layout;
+    }
+
+    // User Data-field types
+    //*************//
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef({Address, Email, Job, Name, Other, Phone, URL})
+    public @interface DataType {
+    }
+
+    private class MyAsyncTask extends AsyncTask<Void, Void, String> {
+        ProgressDialog pd;
+        EditText resultText;
+
+        public MyAsyncTask(EditText textView) {
+            super();
+            resultText = textView;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            pd = setupProgressDialog();
+        }
+
+        protected String doInBackground(Void... args) {
+            StringBuilder OCRresult = new StringBuilder();
+            if (mImageBitmap != null) {
+                try {
+                    TextRecognizer textRecognizer = new TextRecognizer.Builder(MainActivity.this).build();
+                    SparseArray<TextBlock> textBlocks = textRecognizer.detect
+                            (new Frame.Builder().setBitmap(mImageBitmap).build());
+
+                    for (int i = 0; i < textBlocks.size(); i++) {
+                        OCRresult.append(textBlocks.valueAt(i).getValue()).append("\n").append("\n");
+                    }
+                } catch (Exception e) {
+                }
+            }
+            return OCRresult.toString();
+        }
+
+        protected void onPostExecute(String OCRresult) {
+            if (OCRresult == null) {
+                pd.dismiss();
+                return;
+            }
+            containerLL.removeAllViewsInLayout();
+
+            StringBuilder builder = new StringBuilder();
+            String numbers = getPhoneNumbers(OCRresult);
+
+            String liness[] = OCRresult.split("[\\r\\n/]+");
+            for (String line : liness) {
+                if (isValidEmail(line)) {
+                    addRow(Email, line);
+                } else if (isValidURL(line)) {
+                    addRow(URL, getAccuString(line));
+
+                } else if (!numbers.contains(line.trim())) {
+                    addRow(Other, getAccuString(line));
+
+                }
+
+            }
+            Log.v("Phone", numbers);
+
+            OCREditText.setText(builder.toString());
+            pd.dismiss();
+        }
+
     }
 
 
