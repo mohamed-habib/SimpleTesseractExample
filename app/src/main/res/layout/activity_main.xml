@@ -66,9 +66,9 @@
                 android:background="#448aff"
                 android:clickable="true"
                 android:foreground="?android:attr/selectableItemBackground"
-                android:onClick="runOCRClick"
+                android:onClick="runOCRClick_MV"
                 android:padding="10dp"
-                android:text="Run OCR"
+                android:text="Run OCR MV"
                 android:textColor="#ffffff" />
 
             <Button
@@ -79,6 +79,17 @@
                 android:background="#448aff"
                 android:clickable="true"
                 android:foreground="?android:attr/selectableItemBackground"
+                android:onClick="RunOCRClick_GV"
+                android:padding="10dp"
+                android:text="Scan OCR GV"
+                android:textColor="#ffffff" />
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginLeft="20dp"
+                android:background="#448aff"
+                android:clickable="true"
                 android:onClick="onScanQRClick"
                 android:padding="10dp"
                 android:text="Scan QR Code"
@@ -91,7 +102,7 @@
             android:id="@+id/OCRTextContainer"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_marginBottom="20dp"
+            android:layout_marginBottom="10dp"
             android:layout_marginTop="20dp"
             android:layout_weight="4"
             android:focusable="true"
@@ -102,119 +113,93 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Extracted data: "
+                android:text="Extracted data Mobile Vision: "
                 android:textColor="#000000"
                 android:textStyle="bold" />
 
             <EditText
                 android:id="@+id/OCREditText"
                 android:layout_width="match_parent"
-                android:layout_height="1dp"
+                android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
                 android:background="@drawable/border"
                 android:gravity="top"
-                android:lines="7"
-                android:maxLines="7"
+                android:lines="10"
+                android:maxLines="10"
+                android:paddingLeft="20dp"
+                android:overScrollMode="always"
+                android:paddingRight="20dp"
+                android:scrollbarStyle="insideInset"
+                android:scrollbars="vertical"
+                android:text="dadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadaddadadadadadad"
+                android:textSize="16sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/OCRTextContainer_GV"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="10dp"
+            android:layout_weight="4"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:orientation="vertical"
+            android:padding="10dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Extracted data Google Vision: "
+                android:textColor="#000000"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/OCREditText_GV"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/border"
+                android:gravity="top"
+                android:lines="10"
+                android:maxLines="10"
                 android:paddingLeft="20dp"
                 android:paddingRight="20dp"
                 android:scrollbars="vertical"
                 android:textSize="16sp" />
-<ScrollView
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content">
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:id="@+id/data_container"
-        >
-        <!--<LinearLayout-->
-            <!--android:layout_width="match_parent"-->
-            <!--android:layout_height="wrap_content"-->
-            <!--android:minHeight="40dp"-->
-            <!--android:orientation="horizontal"-->
-            <!--&gt;-->
-            <!--<Spinner-->
+
+            <!--<TextView-->
                 <!--android:layout_width="wrap_content"-->
                 <!--android:layout_height="wrap_content"-->
-                <!--android:entries="@array/data_types"-->
-                <!--android:id="@+id/email_spinner"-->
-                <!--/>-->
+                <!--android:layout_marginTop="10dp"-->
+                <!--android:text="Notes: "-->
+                <!--android:textColor="#000000"-->
+                <!--android:textStyle="bold" />-->
 
             <!--<EditText-->
+                <!--android:id="@+id/notes"-->
                 <!--android:layout_width="match_parent"-->
                 <!--android:layout_height="wrap_content"-->
-                <!--android:id="@+id/email_edttext"-->
-                <!--/>-->
-        <!--</LinearLayout>-->
-        <!--<LinearLayout-->
-            <!--android:layout_width="match_parent"-->
-            <!--android:layout_height="wrap_content"-->
-            <!--android:minHeight="40dp"-->
-            <!--android:orientation="horizontal"-->
-            <!--&gt;-->
-            <!--<Spinner-->
-                <!--android:layout_width="wrap_content"-->
-                <!--android:layout_height="wrap_content"-->
-                <!--android:entries="@array/data_types"-->
-                <!--android:id="@+id/phone_spinner"-->
-                <!--/>-->
+                <!--android:lines="4" />-->
+        </LinearLayout>
 
-            <!--<EditText-->
-                <!--android:layout_width="match_parent"-->
-                <!--android:layout_height="wrap_content"-->
-                <!--android:id="@+id/phone_edttext"-->
-                <!--/>-->
-        <!--</LinearLayout>-->
-        <!--<LinearLayout-->
-            <!--android:layout_width="match_parent"-->
-            <!--android:layout_height="wrap_content"-->
-            <!--android:minHeight="40dp"-->
-            <!--android:orientation="horizontal"-->
-            <!--&gt;-->
-            <!--<Spinner-->
-                <!--android:layout_width="wrap_content"-->
-                <!--android:layout_height="wrap_content"-->
-                <!--android:entries="@array/data_types"-->
-                <!--android:id="@+id/url_spinner"-->
-                <!--/>-->
+        <LinearLayout
+            android:id="@+id/OCRTextContainer_Notes"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginBottom="10dp"
+            android:layout_weight="4"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:orientation="vertical"
+            android:padding="10dp">
 
-            <!--<EditText-->
-                <!--android:layout_width="match_parent"-->
-                <!--android:layout_height="wrap_content"-->
-                <!--android:id="@+id/url_edttext"-->
-                <!--/>-->
-        <!--</LinearLayout>-->
-        <!--<LinearLayout-->
-            <!--android:layout_width="match_parent"-->
-            <!--android:layout_height="wrap_content"-->
-            <!--android:minHeight="40dp"-->
-            <!--android:orientation="horizontal"-->
-            <!--&gt;-->
-            <!--<Spinner-->
-                <!--android:layout_width="wrap_content"-->
-                <!--android:layout_height="wrap_content"-->
-                <!--android:entries="@array/data_types"-->
-                <!--android:id="@+id/other_spinner"-->
-                <!--/>-->
-
-            <!--<EditText-->
-                <!--android:layout_width="match_parent"-->
-                <!--android:layout_height="wrap_content"-->
-                <!--android:id="@+id/other_edttext"-->
-                <!--/>-->
-        <!--</LinearLayout>-->
-
-    </LinearLayout>
-
-</ScrollView>
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:text="Notes: "
-                android:textColor="#000000"
-                android:textStyle="bold" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Notes: "
+            android:textColor="#000000"
+            android:textStyle="bold" />
 
             <EditText
                 android:id="@+id/notes"
@@ -228,7 +213,7 @@
             android:layout_height="0dp"
             android:layout_gravity="center"
             android:layout_marginBottom="10dp"
-            android:layout_marginTop="30dp"
+            android:layout_marginTop="20dp"
             android:layout_weight="1"
             android:background="#448aff"
             android:foreground="?android:attr/selectableItemBackground"
