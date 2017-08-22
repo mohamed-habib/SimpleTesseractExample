@@ -2,7 +2,8 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:scrollbars="vertical|horizontal">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -44,12 +45,15 @@
             android:layout_marginTop="20dp"
             android:layout_weight="1"
             android:clickable="true"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+
+            android:weightSum="4">
 
             <Button
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
+                android:layout_weight="1"
                 android:background="#448aff"
                 android:clickable="true"
                 android:onClick="onSelectImageClick"
@@ -58,10 +62,11 @@
                 android:textColor="#ffffff" />
 
             <Button
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:layout_marginLeft="20dp"
+                android:layout_weight="1"
                 android:background="#448aff"
                 android:clickable="true"
                 android:onClick="runOCRClick_MV"
@@ -71,10 +76,11 @@
 
 
             <Button
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:layout_marginLeft="20dp"
+                android:layout_weight="1"
                 android:background="#448aff"
                 android:clickable="true"
                 android:onClick="RunOCRClick_GV"
@@ -83,10 +89,11 @@
                 android:textColor="#ffffff" />
 
             <Button
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:layout_marginLeft="20dp"
+                android:layout_weight="1"
                 android:background="#448aff"
                 android:clickable="true"
                 android:onClick="onScanQRClick"
@@ -177,6 +184,11 @@
                 <!--android:lines="4" />-->
         </LinearLayout>
 
+        <LinearLayout
+            android:id="@+id/data_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
         <LinearLayout
             android:id="@+id/OCRTextContainer_Notes"
             android:layout_width="match_parent"
