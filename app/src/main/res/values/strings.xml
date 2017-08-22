@@ -11,5 +11,18 @@
         <item>English</item>
     </string-array>
 
+    <string-array name="data_types">
+
+        <item>Address</item>
+        <item>Email</item>
+        <item>Job</item>
+        <item>Name</item>
+        <item>Other</item>
+        <item>Phone</item>
+        <item>URL</item>
+
+    </string-array>
+
+
 
 </resources>
