@@ -23,8 +23,23 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.android.volley.AuthFailureError;
+import com.android.volley.NetworkError;
+import com.android.volley.NoConnectionError;
+import com.android.volley.ParseError;
+import com.android.volley.Response;
+import com.android.volley.ServerError;
+import com.android.volley.TimeoutError;
+import com.android.volley.VolleyError;
+import com.codelab.ocrexample.data.ReadImage;
 import com.codelab.ocrexample.data.model.Card;
+import com.codelab.ocrexample.data.model.Feature;
+import com.codelab.ocrexample.data.model.Image;
+import com.codelab.ocrexample.data.model.ImageContext;
+import com.codelab.ocrexample.data.model.Request;
+import com.codelab.ocrexample.data.model.SendDataRequest;
 import com.google.android.gms.vision.Frame;
 import com.google.android.gms.vision.text.TextBlock;
 import com.google.android.gms.vision.text.TextRecognizer;
@@ -32,11 +47,15 @@ import com.google.zxing.Result;
 import com.theartofdev.edmodo.cropper.CropImage;
 import com.theartofdev.edmodo.cropper.CropImageView;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.channels.FileChannel;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 import me.dm7.barcodescanner.zxing.ZXingScannerView;
@@ -50,7 +69,8 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
     Bitmap mImageBitmap;
     ImageView mImageView;
     TextView mTextView;
-    TextView OCREditText;
+    EditText OCREditText;
+    EditText OCREditText_GV;
     String mImagePath;
     EditText mNotesET;
     private ZXingScannerView mScannerView;
@@ -80,7 +100,8 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
         Nammu.init(this);
         mImageView = (ImageView) findViewById(R.id.imageView);
         mTextView = (TextView) findViewById(R.id.textView);
-        OCREditText = (TextView) findViewById(R.id.OCREditText);
+        OCREditText = (EditText) findViewById(R.id.OCREditText);
+        OCREditText_GV = (EditText) findViewById(R.id.OCREditText_GV);
         mNotesET = (EditText) findViewById(R.id.notes);
         mScannerView = new ZXingScannerView(this);   // Programmatically initialize the scanner view
 
@@ -129,7 +150,7 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
 
                 try {
                     File src = new File(mImagePath);
-                    copyFile(new File(mImagePath),new File(Environment.getExternalStorageDirectory()+ "/OCR/"+src.getName()));
+                    Utils.copyFile(new File(mImagePath), new File(Environment.getExternalStorageDirectory() + "/OCR/" + src.getName()));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -145,24 +166,23 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
         }
     }
 
-    void copyFile(File src, File dst) throws IOException {
-        FileChannel inChannel = new FileInputStream(src).getChannel();
-        FileChannel outChannel = new FileOutputStream(dst).getChannel();
-        try {
-            inChannel.transferTo(0, inChannel.size(), outChannel);
-        } finally {
-            if (inChannel != null)
-                inChannel.close();
-            if (outChannel != null)
-                outChannel.close();
-        }
-    }
-
-    public void runOCRClick(View view) {
+    public void runOCRClick_MV(View view) {
         if (checkForImageCapture(view)) return;
 
-        MyAsyncTask myAsyncTask = new MyAsyncTask();
+        OCREditText.setText("");
+        MyAsyncTask myAsyncTask = new MyAsyncTask(OCREditText);
         myAsyncTask.execute();
+    }
+
+    public void RunOCRClick_GV(View view) {
+        if (checkForImageCapture(view)) return;
+
+        OCREditText_GV.setText("");
+
+        imageData(mImageBitmap);
+
+//        MyAsyncTask myAsyncTask = new MyAsyncTask(OCREditText_GV);
+//        myAsyncTask.execute();
     }
 
     public void onSelectImageClick(View view) {
@@ -246,6 +266,12 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
 
     private class MyAsyncTask extends AsyncTask<Void, Void, String> {
         ProgressDialog pd;
+        EditText resultText;
+
+        public MyAsyncTask(EditText textView) {
+            super();
+            resultText = textView;
+        }
 
         @Override
         protected void onPreExecute() {
@@ -275,7 +301,7 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
                 pd.dismiss();
                 return;
             }
-            OCREditText.setText(OCRresult);
+            resultText.setText(OCRresult);
             pd.dismiss();
         }
 
@@ -287,6 +313,99 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
             public void onCancel(DialogInterface dialog) {
             }
         });
+    }
+
+
+    private void imageData(Bitmap bitmap) {
+
+        List<Request> requests = new ArrayList<Request>();
+        List<Feature> features = new ArrayList<Feature>();
+        List<String> languages = Arrays.asList("en");
+
+        Request request = new Request();
+        Feature feature = new Feature();
+        Image image = new Image();
+        ImageContext imageContext = new ImageContext();
+
+        image.setContent(Utils.bitmapToBase64(bitmap));
+        feature.setType("TEXT_DETECTION");
+        imageContext.setLanguageHints(languages);
+
+        request.setFeatures(features);
+        request.setImage(image);
+        request.setImageContext(imageContext);
+
+        features.add(feature);
+        requests.add(request);
+
+        SendDataRequest sendDataRequest = new SendDataRequest();
+
+        sendDataRequest.setRequests(requests);
+
+        try {
+            postRequest(sendDataRequest);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void postRequest(final SendDataRequest sendDataRequest) throws JSONException {
+
+        Response.Listener successListener = new Response.Listener<JSONObject>() {
+            @Override
+            public void onResponse(JSONObject response) {
+
+                Log.d("onResponse", "Response");
+
+                if (response != null) {
+                    try {
+                        Log.d("onResponse", "Response in not Null   " + response.toString());
+                        JSONArray responsesJsonArray = response.getJSONArray("responses");
+                        if (responsesJsonArray.length() > 0) {
+                            JSONObject jsonObject = responsesJsonArray.getJSONObject(0);
+                            JSONArray textAnnotationsJsonArray = jsonObject.getJSONArray("textAnnotations");
+                            if (textAnnotationsJsonArray.length() > 0) {
+                                JSONObject textAnnotationJsonObject = textAnnotationsJsonArray.getJSONObject(0);
+                                String description = textAnnotationJsonObject.getString("description");
+                                Log.d("onResponse", "description: " + description);
+                                OCREditText_GV.setText(description);
+                            }
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                } else
+                    Log.d("onResponse", "Response is Null");
+
+            }
+        };
+        Response.ErrorListener errorListener = new Response.ErrorListener() {
+
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                if (error instanceof TimeoutError || error instanceof NoConnectionError) {
+                    Toast.makeText(MainActivity.this, "TimeoutError || NoConnectionError", Toast.LENGTH_LONG).show();
+                } else if (error instanceof AuthFailureError) {
+                    Toast.makeText(MainActivity.this, "AuthFailureError", Toast.LENGTH_LONG).show();
+                } else if (error instanceof ServerError) {
+                    Toast.makeText(MainActivity.this, "ServerError", Toast.LENGTH_LONG).show();
+                } else if (error instanceof NetworkError) {
+                    Toast.makeText(MainActivity.this, "NetworkError", Toast.LENGTH_LONG).show();
+                } else if (error instanceof ParseError) {
+                    Toast.makeText(MainActivity.this, "ParseError", Toast.LENGTH_LONG).show();
+                }
+            }
+        };
+
+//        if (NetworkUtilies.isConnectingToInternet(LoginActivity.this)) {
+//            NetworkUtilies.startLoadingDialog(LoginActivity.this);
+        ReadImage.ReadImage(MainActivity.this, successListener, errorListener, false, sendDataRequest);
+//        }
+//        else {
+//            getAlertDialog(LoginActivity.this, null,
+//                    getString(R.string.no_internet), null,
+//                    false, null).show();
+//        }
     }
 
 }
