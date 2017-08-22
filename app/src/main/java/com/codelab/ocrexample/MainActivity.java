@@ -20,6 +20,7 @@ import android.util.Patterns;
 import android.util.SparseArray;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -134,6 +135,18 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
                 }
             });
         }
+
+        OCREditText.setOnTouchListener(new View.OnTouchListener() {
+            public boolean onTouch(View v, MotionEvent event) {
+                v.getParent().requestDisallowInterceptTouchEvent(true);
+                switch (event.getAction() & MotionEvent.ACTION_MASK) {
+                    case MotionEvent.ACTION_UP:
+                        v.getParent().requestDisallowInterceptTouchEvent(false);
+                        break;
+                }
+                return false;
+            }
+        });
 
     }
 
@@ -264,6 +277,11 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
         OCREditText.setText(OCREditText.getText() + "\n\n" + cardData);
 
         cameraDialog.dismiss();
+    }
+
+
+    String removeArabicText(String text) {
+        return text.replaceAll("\\w", "");
     }
 
     private class MyAsyncTask extends AsyncTask<Void, Void, String> {
