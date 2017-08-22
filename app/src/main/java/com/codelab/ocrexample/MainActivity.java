@@ -10,6 +10,7 @@ import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.annotation.IntDef;
 import android.support.design.widget.Snackbar;
 import android.support.v4.content.ContextCompat;
@@ -24,12 +25,28 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.android.volley.AuthFailureError;
+import com.android.volley.NetworkError;
+import com.android.volley.NoConnectionError;
+import com.android.volley.ParseError;
+import com.android.volley.Response;
+import com.android.volley.ServerError;
+import com.android.volley.TimeoutError;
+import com.android.volley.VolleyError;
+import com.codelab.ocrexample.data.ReadImage;
 import com.codelab.ocrexample.data.model.Card;
+import com.codelab.ocrexample.data.model.Feature;
+import com.codelab.ocrexample.data.model.Image;
+import com.codelab.ocrexample.data.model.ImageContext;
+import com.codelab.ocrexample.data.model.Request;
+import com.codelab.ocrexample.data.model.SendDataRequest;
 import com.google.android.gms.vision.Frame;
 import com.google.android.gms.vision.text.TextBlock;
 import com.google.android.gms.vision.text.TextRecognizer;
@@ -39,8 +56,17 @@ import com.google.zxing.Result;
 import com.theartofdev.edmodo.cropper.CropImage;
 import com.theartofdev.edmodo.cropper.CropImageView;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.File;
+import java.io.IOException;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -51,13 +77,6 @@ import pl.tajchert.nammu.PermissionCallback;
 import static android.view.View.GONE;
 
 public class MainActivity extends AppCompatActivity implements ZXingScannerView.ResultHandler {
-    // User Data-field types
-        //*************//
-    @Retention(RetentionPolicy.SOURCE)
-    @IntDef({Address, Email, Job, Name, Other, Phone, URL})
-    public @interface DataType {
-    }
-
     public static final int Address = 0;
     public static final int Email = 1;
     public static final int Job = 2;
@@ -65,17 +84,17 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
     public static final int Other = 4;
     public static final int Phone = 5;
     public static final int URL = 6;
-         //*************//
-
     Bitmap mImageBitmap;
+    //*************//
     ImageView mImageView;
     TextView mTextView;
-    TextView OCREditText;
+    EditText OCREditText;
+    EditText OCREditText_GV;
     String mImagePath;
     EditText mNotesET;
     LinearLayout containerLL;
+    Dialog cameraDialog;
     private ZXingScannerView mScannerView;
-
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -102,7 +121,8 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
         Nammu.init(this);
         mImageView = (ImageView) findViewById(R.id.imageView);
         mTextView = (TextView) findViewById(R.id.textView);
-        OCREditText = (TextView) findViewById(R.id.OCREditText);
+        OCREditText = (EditText) findViewById(R.id.OCREditText);
+        OCREditText_GV = (EditText) findViewById(R.id.OCREditText_GV);
         mNotesET = (EditText) findViewById(R.id.notes);
         mScannerView = new ZXingScannerView(this);   // Programmatically initialize the scanner view
         containerLL = (LinearLayout) findViewById(R.id.data_container);
@@ -148,6 +168,14 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
             if (resultCode == RESULT_OK) {
                 Uri resultUri = result.getUri();
                 mImagePath = resultUri.getPath();
+
+                try {
+                    File src = new File(mImagePath);
+                    Utils.copyFile(new File(mImagePath), new File(Environment.getExternalStorageDirectory() + "/OCR/" + src.getName()));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
                 mImageBitmap = Utils.getBitmap(mImagePath);
                 mImageView.setImageBitmap(mImageBitmap);
                 mTextView.setVisibility(GONE);
@@ -158,11 +186,23 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
         }
     }
 
-    public void runOCRClick(View view) {
+    public void runOCRClick_MV(View view) {
         if (checkForImageCapture(view)) return;
 
-        MyAsyncTask myAsyncTask = new MyAsyncTask();
+        OCREditText.setText("");
+        MyAsyncTask myAsyncTask = new MyAsyncTask(OCREditText);
         myAsyncTask.execute();
+    }
+
+    public void RunOCRClick_GV(View view) {
+        if (checkForImageCapture(view)) return;
+
+        OCREditText_GV.setText("");
+
+        imageData(mImageBitmap);
+
+//        MyAsyncTask myAsyncTask = new MyAsyncTask(OCREditText_GV);
+//        myAsyncTask.execute();
     }
 
     public void onSelectImageClick(View view) {
@@ -205,8 +245,6 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
         return false;
     }
 
-    Dialog cameraDialog;
-
     public void onScanQRClick(View view) {
         mScannerView.setResultHandler(this); // Register ourselves as a handler for scan results.
         mScannerView.startCamera(0);          // Start camera
@@ -240,6 +278,8 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
 
         String data[] = cardData.split("[\\r?\\n]+"); // split result lines
         // Start data parsing
+        containerLL.removeAllViewsInLayout();
+        OCREditText_GV.setText("");
         for (String s : data) {
             if (s.startsWith("N:"))
                 addRow(Name, s.substring(s.indexOf(":") + 1));
@@ -259,8 +299,193 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
         cameraDialog.dismiss();
     }
 
+    private boolean isValidEmail(String text) {
+//        if (email.contains("@") && email.contains(".")) {
+//
+//            Log.d("MainActivity", "contains");
+//            return true;
+//        } else
+//            return false;
+
+        String email = text.trim().replaceAll("\\s", "");
+        String pattern = "^[A-Za-z0-9+_.-]+@(.+)$\n";
+        Pattern r = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
+        return Patterns.EMAIL_ADDRESS.matcher(email).matches();
+    }
+
+    private String getPhoneNumbers(String text) {
+        StringBuilder stringBuilder = new StringBuilder();
+
+
+        for (PhoneNumberMatch temp : PhoneNumberUtil.getInstance().findNumbers(text, "EG")) {
+
+
+            stringBuilder.append(getAccuString(PhoneNumberUtil.getInstance().format(temp.number(), PhoneNumberUtil.PhoneNumberFormat.NATIONAL)) + "\n");
+            addRow(Phone, getAccuString(PhoneNumberUtil.getInstance().format(temp.number(), PhoneNumberUtil.PhoneNumberFormat.NATIONAL)));
+        }
+
+        return stringBuilder.toString();
+
+
+    }
+
+    private boolean isValidURL(String URL) {
+        String url = URL.trim().replaceAll("\\s+", "");
+
+        String pattern = "(https?:\\/\\/(?:www\\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\\.[^\\s]{2,}|www\\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\\.[^\\s]{2,}|https?:\\/\\/(?:www\\.|(?!www))[a-zA-Z0-9]\\.[^\\s]{2,}|www\\.[a-zA-Z0-9]\\.[^\\s]{2,})";
+        Pattern r = Pattern.compile(pattern);
+
+        return r.matcher(url).matches();
+    }
+
+    private ProgressDialog setupProgressDialog() {
+        return ProgressDialog.show(this, "Processing .....", null, true, true, new DialogInterface.OnCancelListener() {
+            @Override
+            public void onCancel(DialogInterface dialog) {
+            }
+        });
+    }
+
+    private void imageData(Bitmap bitmap) {
+
+        List<Request> requests = new ArrayList<Request>();
+        List<Feature> features = new ArrayList<Feature>();
+        List<String> languages = Arrays.asList("en");
+
+        Request request = new Request();
+        Feature feature = new Feature();
+        Image image = new Image();
+        ImageContext imageContext = new ImageContext();
+
+        image.setContent(Utils.bitmapToBase64(bitmap));
+        feature.setType("TEXT_DETECTION");
+        imageContext.setLanguageHints(languages);
+
+        request.setFeatures(features);
+        request.setImage(image);
+        request.setImageContext(imageContext);
+
+        features.add(feature);
+        requests.add(request);
+
+        SendDataRequest sendDataRequest = new SendDataRequest();
+
+        sendDataRequest.setRequests(requests);
+
+        try {
+            postRequest(sendDataRequest);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void postRequest(final SendDataRequest sendDataRequest) throws JSONException {
+
+        Response.Listener successListener = new Response.Listener<JSONObject>() {
+            @Override
+            public void onResponse(JSONObject response) {
+
+                Log.d("onResponse", "Response");
+
+                if (response != null) {
+                    try {
+                        Log.d("onResponse", "Response in not Null   " + response.toString());
+                        JSONArray responsesJsonArray = response.getJSONArray("responses");
+                        if (responsesJsonArray.length() > 0) {
+                            JSONObject jsonObject = responsesJsonArray.getJSONObject(0);
+                            JSONArray textAnnotationsJsonArray = jsonObject.getJSONArray("textAnnotations");
+                            if (textAnnotationsJsonArray.length() > 0) {
+                                JSONObject textAnnotationJsonObject = textAnnotationsJsonArray.getJSONObject(0);
+                                String description = textAnnotationJsonObject.getString("description");
+                                Log.d("onResponse", "description: " + description);
+                                OCREditText_GV.setText(description);
+                            }
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                } else
+                    Log.d("onResponse", "Response is Null");
+
+            }
+        };
+        Response.ErrorListener errorListener = new Response.ErrorListener() {
+
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                if (error instanceof TimeoutError || error instanceof NoConnectionError) {
+                    Toast.makeText(MainActivity.this, "TimeoutError || NoConnectionError", Toast.LENGTH_LONG).show();
+                } else if (error instanceof AuthFailureError) {
+                    Toast.makeText(MainActivity.this, "AuthFailureError", Toast.LENGTH_LONG).show();
+                } else if (error instanceof ServerError) {
+                    Toast.makeText(MainActivity.this, "ServerError", Toast.LENGTH_LONG).show();
+                } else if (error instanceof NetworkError) {
+                    Toast.makeText(MainActivity.this, "NetworkError", Toast.LENGTH_LONG).show();
+                } else if (error instanceof ParseError) {
+                    Toast.makeText(MainActivity.this, "ParseError", Toast.LENGTH_LONG).show();
+                }
+            }
+        };
+
+//        if (NetworkUtilies.isConnectingToInternet(LoginActivity.this)) {
+//            NetworkUtilies.startLoadingDialog(LoginActivity.this);
+        ReadImage.ReadImage(MainActivity.this, successListener, errorListener, false, sendDataRequest);
+//        }
+//        else {
+//            getAlertDialog(LoginActivity.this, null,
+//                    getString(R.string.no_internet), null,
+//                    false, null).show();
+//        }
+    }
+
+    private String getAccuString(String line) {
+        return line.replaceAll("\\s+", "");
+    }
+
+    private void addRow(@DataType int type, String text) {
+
+        final LinearLayout layout = new LinearLayout(MainActivity.this);
+        layout.setOrientation(LinearLayout.HORIZONTAL);
+        Spinner spinner = new Spinner(this);
+        String array[] = getResources().getStringArray(R.array.data_types);
+        spinner.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, array));
+        EditText editText = new EditText(this);
+        editText.setText(text);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        layout.setLayoutParams(params);
+        spinner.setSelection(type);
+        ImageButton imageButton = new ImageButton(MainActivity.this);
+        imageButton.setImageResource(R.drawable.ic_remove);
+        imageButton.setBackgroundColor(ContextCompat.getColor(MainActivity.this, android.R.color.transparent));
+
+        layout.addView(spinner);
+        layout.addView(editText);
+        layout.addView(imageButton);
+        imageButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                containerLL.removeView(layout);
+            }
+        });
+        containerLL.addView(layout);
+//        return layout;
+    }
+
+    // User Data-field types
+    //*************//
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef({Address, Email, Job, Name, Other, Phone, URL})
+    public @interface DataType {
+    }
+
     private class MyAsyncTask extends AsyncTask<Void, Void, String> {
         ProgressDialog pd;
+        EditText resultText;
+
+        public MyAsyncTask(EditText textView) {
+            super();
+            resultText = textView;
+        }
 
         @Override
         protected void onPreExecute() {
@@ -273,7 +498,9 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
             if (mImageBitmap != null) {
                 try {
                     TextRecognizer textRecognizer = new TextRecognizer.Builder(MainActivity.this).build();
-                    SparseArray<TextBlock> textBlocks = textRecognizer.detect(new Frame.Builder().setBitmap(mImageBitmap).build());
+                    SparseArray<TextBlock> textBlocks = textRecognizer.detect
+                            (new Frame.Builder().setBitmap(mImageBitmap).build());
+
                     for (int i = 0; i < textBlocks.size(); i++) {
                         OCRresult.append(textBlocks.valueAt(i).getValue()).append("\n").append("\n");
                     }
@@ -288,8 +515,8 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
                 pd.dismiss();
                 return;
             }
-//            urlET.setText("");
-//            emailEt.setText("");
+            containerLL.removeAllViewsInLayout();
+
             StringBuilder builder = new StringBuilder();
             String numbers = getPhoneNumbers(OCRresult);
 
@@ -309,79 +536,9 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
             Log.v("Phone", numbers);
 
             OCREditText.setText(builder.toString());
-//            otherET.setText(builder.toString());
-//            otherSr.setSelection(3);
             pd.dismiss();
         }
 
-    }
-
-    private boolean isValidEmail(String text) {
-        String email = text.trim().replaceAll("\\s", "");
-        String pattern = "^[A-Za-z0-9+_.-]+@(.+)$\n";
-        Pattern r = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
-        return Patterns.EMAIL_ADDRESS.matcher(email).matches();
-    }
-
-    private String getPhoneNumbers(String text) {
-        StringBuilder stringBuilder = new StringBuilder();
-
-
-        for (PhoneNumberMatch temp : PhoneNumberUtil.getInstance().findNumbers(text, "EG")) {
-
-
-            stringBuilder.append(getAccuString(PhoneNumberUtil.getInstance().format(temp.number(), PhoneNumberUtil.PhoneNumberFormat.NATIONAL)) + "\n");
-        }
-        addRow(Phone, stringBuilder.toString());
-        return stringBuilder.toString();
-
-
-    }
-
-    private boolean isValidPhoneNumber(String text) {
-        String phone = text.trim().replaceAll("[^0-9]", "");
-        String pattern = "^\\s*(?:\\+?(\\d{1,3}))?[-. (]*(\\d{3})[-. )]*(\\d{3})[-. ]*(\\d{4})(?: *x(\\d+))?\\s*$";
-        Pattern r = Pattern.compile(pattern);
-        return r.matcher(phone).matches();
-    }
-
-    private boolean isValidURL(String URL) {
-        String url = URL.trim().replaceAll("\\s+", "");
-        String pattern = "(https?:\\/\\/(?:www\\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\\.[^\\s]{2,}|www\\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\\.[^\\s]{2,}|https?:\\/\\/(?:www\\.|(?!www))[a-zA-Z0-9]\\.[^\\s]{2,}|www\\.[a-zA-Z0-9]\\.[^\\s]{2,})";
-        Pattern r = Pattern.compile(pattern);
-
-        return r.matcher(url).matches();
-    }
-
-    private ProgressDialog setupProgressDialog() {
-        return ProgressDialog.show(this, "Processing .....", null, true, true, new DialogInterface.OnCancelListener() {
-            @Override
-            public void onCancel(DialogInterface dialog) {
-            }
-        });
-    }
-
-    private String getAccuString(String line) {
-        return line.replaceAll("\\s+", "");
-    }
-
-    private void addRow(@DataType int type, String text) {
-
-
-        LinearLayout layout = new LinearLayout(MainActivity.this);
-        layout.setOrientation(LinearLayout.HORIZONTAL);
-        Spinner spinner = new Spinner(this);
-        String array[] = getResources().getStringArray(R.array.data_types);
-        spinner.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, array));
-        EditText editText = new EditText(this);
-        editText.setText(text);
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        layout.setLayoutParams(params);
-        spinner.setSelection(type);
-        layout.addView(spinner);
-        layout.addView(editText);
-        containerLL.addView(layout);
-//        return layout;
     }
 
 
