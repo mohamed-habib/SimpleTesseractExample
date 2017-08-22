@@ -10,6 +10,7 @@ import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.design.widget.Snackbar;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -31,6 +32,11 @@ import com.google.zxing.Result;
 import com.theartofdev.edmodo.cropper.CropImage;
 import com.theartofdev.edmodo.cropper.CropImageView;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.channels.FileChannel;
 import java.util.UUID;
 
 import me.dm7.barcodescanner.zxing.ZXingScannerView;
@@ -120,6 +126,14 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
             if (resultCode == RESULT_OK) {
                 Uri resultUri = result.getUri();
                 mImagePath = resultUri.getPath();
+
+                try {
+                    File src = new File(mImagePath);
+                    copyFile(new File(mImagePath),new File(Environment.getExternalStorageDirectory()+ "/OCR/"+src.getName()));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
                 mImageBitmap = Utils.getBitmap(mImagePath);
                 mImageView.setImageBitmap(mImageBitmap);
                 mTextView.setVisibility(GONE);
@@ -128,6 +142,19 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
             } else if (resultCode == CropImage.CROP_IMAGE_ACTIVITY_RESULT_ERROR_CODE) {
                 Exception error = result.getError();
             }
+        }
+    }
+
+    void copyFile(File src, File dst) throws IOException {
+        FileChannel inChannel = new FileInputStream(src).getChannel();
+        FileChannel outChannel = new FileOutputStream(dst).getChannel();
+        try {
+            inChannel.transferTo(0, inChannel.size(), outChannel);
+        } finally {
+            if (inChannel != null)
+                inChannel.close();
+            if (outChannel != null)
+                outChannel.close();
         }
     }
 
@@ -148,7 +175,8 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
         if (checkForImageCapture(view)) return;
         if (checkForCardText(view)) return;
         //create Card object and save to db
-        Card card = new Card(mImagePath, OCREditText.getText().toString(), mNotesET.getText().toString(), UUID.randomUUID());
+        Card card = new Card(mImagePath, OCREditText.getText().toString(),
+                mNotesET.getText().toString(), UUID.randomUUID());
         card.insert();
 
         OCREditText.setText("");
@@ -230,7 +258,9 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
             if (mImageBitmap != null) {
                 try {
                     TextRecognizer textRecognizer = new TextRecognizer.Builder(MainActivity.this).build();
-                    SparseArray<TextBlock> textBlocks = textRecognizer.detect(new Frame.Builder().setBitmap(mImageBitmap).build());
+                    SparseArray<TextBlock> textBlocks = textRecognizer.detect
+                            (new Frame.Builder().setBitmap(mImageBitmap).build());
+
                     for (int i = 0; i < textBlocks.size(); i++) {
                         OCRresult.append(textBlocks.valueAt(i).getValue()).append("\n").append("\n");
                     }
