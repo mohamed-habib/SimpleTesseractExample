@@ -1,17 +1,22 @@
 package com.codelab.ocrexample;
 
+import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Filter;
 import android.widget.Filterable;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.codelab.ocrexample.data.model.Card;
+import com.codelab.ocrexample.data.model.Card_Table;
+import com.raizlabs.android.dbflow.sql.language.SQLite;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,9 +44,33 @@ public class CardsAdapter extends RecyclerView.Adapter<CardsAdapter.CardViewHold
     }
 
     @Override
-    public void onBindViewHolder(CardsAdapter.CardViewHolder viewHolder, int i) {
+    public void onBindViewHolder(CardsAdapter.CardViewHolder viewHolder, final int i) {
         final Card selectedCard = mFilteredList.get(i);
         viewHolder.cardIV.setImageBitmap(selectedCard.getImgBitmap());
+        viewHolder.deleteIB.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                final AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
+                DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        switch (which) {
+                            case DialogInterface.BUTTON_POSITIVE:
+                                SQLite.delete().from(Card.class).where(Card_Table.id.eq(selectedCard.getId())).query();
+                                mFilteredList.remove(i);
+                                notifyDataSetChanged();
+                                break;
+
+                            case DialogInterface.BUTTON_NEGATIVE:
+                                dialog.dismiss();
+                                break;
+                        }
+                    }
+                };
+                builder.setMessage("Are you sure you want to delete this card ?").setPositiveButton("Yes", dialogClickListener)
+                        .setNegativeButton("No", dialogClickListener).show();
+            }
+        });
         viewHolder.item.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -100,12 +129,14 @@ public class CardsAdapter extends RecyclerView.Adapter<CardsAdapter.CardViewHold
 
     public class CardViewHolder extends RecyclerView.ViewHolder {
         private ImageView cardIV;
+        private ImageButton deleteIB;
         private View item;
 
         public CardViewHolder(View view) {
             super(view);
 
             cardIV = (ImageView) view.findViewById(R.id.card_iv);
+            deleteIB = (ImageButton) view.findViewById(R.id.delete_ib);
             item = view;
 
 

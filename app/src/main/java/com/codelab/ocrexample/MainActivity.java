@@ -10,7 +10,6 @@ import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Environment;
 import android.support.design.widget.Snackbar;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -23,23 +22,8 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import com.android.volley.AuthFailureError;
-import com.android.volley.NetworkError;
-import com.android.volley.NoConnectionError;
-import com.android.volley.ParseError;
-import com.android.volley.Response;
-import com.android.volley.ServerError;
-import com.android.volley.TimeoutError;
-import com.android.volley.VolleyError;
-import com.codelab.ocrexample.data.ReadImage;
 import com.codelab.ocrexample.data.model.Card;
-import com.codelab.ocrexample.data.model.Feature;
-import com.codelab.ocrexample.data.model.Image;
-import com.codelab.ocrexample.data.model.ImageContext;
-import com.codelab.ocrexample.data.model.Request;
-import com.codelab.ocrexample.data.model.SendDataRequest;
 import com.google.android.gms.vision.Frame;
 import com.google.android.gms.vision.text.TextBlock;
 import com.google.android.gms.vision.text.TextRecognizer;
@@ -47,15 +31,6 @@ import com.google.zxing.Result;
 import com.theartofdev.edmodo.cropper.CropImage;
 import com.theartofdev.edmodo.cropper.CropImageView;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.UUID;
 
 import me.dm7.barcodescanner.zxing.ZXingScannerView;
@@ -158,7 +133,6 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
                 mImageBitmap = Utils.getBitmap(mImagePath);
                 mImageView.setImageBitmap(mImageBitmap);
                 mTextView.setVisibility(GONE);
-                OCREditText.setText("");
 
             } else if (resultCode == CropImage.CROP_IMAGE_ACTIVITY_RESULT_ERROR_CODE) {
                 Exception error = result.getError();
@@ -195,8 +169,7 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
         if (checkForImageCapture(view)) return;
         if (checkForCardText(view)) return;
         //create Card object and save to db
-        Card card = new Card(mImagePath, OCREditText.getText().toString(),
-                mNotesET.getText().toString(), UUID.randomUUID());
+        Card card = new Card(mImagePath, OCREditText.getText().toString(), mNotesET.getText().toString(), UUID.randomUUID());
         card.insert();
 
         OCREditText.setText("");
@@ -259,7 +232,7 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
         String cardData = rawResult.getText().replace(";", "\n\n");
         cardData = cardData.replace("MECARD:", "");
 
-        OCREditText.setText(cardData);
+        OCREditText.setText(OCREditText.getText() + "\n\n" + cardData);
 
         cameraDialog.dismiss();
     }
@@ -301,10 +274,66 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
                 pd.dismiss();
                 return;
             }
-            resultText.setText(OCRresult);
+            StringBuilder builder = new StringBuilder();
+            String liness[] = OCRresult.split("[\\r\\n]+");
+            for (String line : liness) {
+                if (isValidEmail(line))
+                    builder.append(String.format("Email %s", line + "\n"));
+                else if (isValidPhoneNumber(line))
+                    builder.append(String.format("phone: %s", line) + "\n");
+                else if (isValidURL(line))
+                    builder.append(String.format("URL: %s", line + "\n"));
+                else
+                    builder.append(line + "\n");
+
+                getPhoneNumbers(OCRresult);
+            }
+
+
+            OCREditText.setText(builder.toString());
             pd.dismiss();
         }
 
+    }
+    private boolean isValidEmail(String text) {
+//        if (email.contains("@") && email.contains(".")) {
+//
+//            Log.d("MainActivity", "contains");
+//            return true;
+//        } else
+//            return false;
+
+        String email = text.trim().replaceAll("\\s", "");
+        String pattern = "^[A-Za-z0-9+_.-]+@(.+)$\n";
+        Pattern r = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
+        return Patterns.EMAIL_ADDRESS.matcher(email).matches();
+    }
+
+    private List<String> getPhoneNumbers(String text) {
+        List<String> phoneNumbers = new ArrayList<>();
+        for (PhoneNumberMatch temp : PhoneNumberUtil.getInstance().findNumbers(text, "EG")) {
+            phoneNumbers.add(temp.rawString().replaceAll("\\s+", ""));
+            Log.v("PHONE", temp.rawString().trim());
+        }
+        return phoneNumbers;
+
+
+    }
+
+    private boolean isValidPhoneNumber(String text) {
+        String phone = text.trim().replaceAll("[^0-9]", "");
+        String pattern = "^\\s*(?:\\+?(\\d{1,3}))?[-. (]*(\\d{3})[-. )]*(\\d{3})[-. ]*(\\d{4})(?: *x(\\d+))?\\s*$";
+        Pattern r = Pattern.compile(pattern);
+        return r.matcher(phone).matches();
+    }
+
+    private boolean isValidURL(String URL) {
+        String url = URL.trim().replaceAll("\\s+", "");
+
+        String pattern = "(https?:\\/\\/(?:www\\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\\.[^\\s]{2,}|www\\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\\.[^\\s]{2,}|https?:\\/\\/(?:www\\.|(?!www))[a-zA-Z0-9]\\.[^\\s]{2,}|www\\.[a-zA-Z0-9]\\.[^\\s]{2,})";
+        Pattern r = Pattern.compile(pattern);
+
+        return r.matcher(url).matches();
     }
 
     private ProgressDialog setupProgressDialog() {
