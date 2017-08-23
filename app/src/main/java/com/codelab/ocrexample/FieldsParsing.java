@@ -8,11 +8,12 @@ import com.google.i18n.phonenumbers.PhoneNumberMatch;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 
 import static com.codelab.ocrexample.data.model.Field.Email;
-import static com.codelab.ocrexample.data.model.Field.Other;
+import static com.codelab.ocrexample.data.model.Field.Job;
 import static com.codelab.ocrexample.data.model.Field.Phone;
 import static com.codelab.ocrexample.data.model.Field.URL;
 
@@ -21,6 +22,12 @@ import static com.codelab.ocrexample.data.model.Field.URL;
  */
 
 public class FieldsParsing {
+
+    static List<String> job_titles = Arrays.asList("Manager"," HR ","Technical","Co-Founder","CEO"
+                                            ,"Financial","Administrator","Admin","Developer"
+                                            ,"Engineer","Programmer","Sales","Analyst","Architect "
+                                            ,"Leader","President","Chief","Officer","Designer"
+                                            ,"Senior","Junior","Project","Supervisor","Specialist");
 
     public static boolean isValidURL(String URL) {
         String url = URL.trim().replaceAll("\\s+", "");
@@ -51,11 +58,24 @@ public class FieldsParsing {
         return phoneNumbers;
     }
 
+    public static boolean containsAKeyword(String subString, List<String> keywords){
+        for(String keyword : keywords){
+            if(subString.contains(keyword)){
+                return true;
+            }
+        }
+        return false; // Never found match.
+    }
+
     @NonNull
     public static List<Field> parseOCRResult(String ocrResult) {
         List<Field> fieldList = new ArrayList<>();
 
         List<String> numbers = getPhoneNumbers(ocrResult);
+
+        // remove numbers
+        for (String number : numbers)
+            ocrResult = ocrResult.replace(number, "");
 
         for (String number : numbers)
             fieldList.add(new Field(Phone, number));
@@ -65,9 +85,13 @@ public class FieldsParsing {
                 fieldList.add(new Field(Email, line));
             } else if (isValidURL(line)) {
                 fieldList.add(new Field(URL, line));
-            } else if (!numbers.contains(line.trim())) {
-                fieldList.add(new Field(Other, line));
             }
+            else if (containsAKeyword(line, job_titles)) {
+                fieldList.add(new Field(Job, line));
+            }
+//            else if(Pattern.compile("[^A-Za-z0-9]").matcher(line).matches()){
+//                fieldList.add(new Field(Other, line));
+//            }
         }
         return fieldList;
     }

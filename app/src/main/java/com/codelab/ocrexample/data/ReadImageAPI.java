@@ -2,8 +2,7 @@ package com.codelab.ocrexample.data;
 
 import android.content.Context;
 
-import com.codelab.ocrexample.SecretKeys;
-import com.codelab.ocrexample.data.model.SendDataRequest;
+ import com.codelab.ocrexample.data.model.SendDataRequest;
 import com.google.gson.Gson;
 
 import org.json.JSONException;
