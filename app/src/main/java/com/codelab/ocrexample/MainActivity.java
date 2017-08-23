@@ -19,6 +19,7 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.util.Pair;
 import android.util.SparseArray;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
@@ -83,13 +84,11 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
     LinearLayout fieldsContainerLL;
 
     Dialog cameraDialog;
-    private ZXingScannerView mScannerView;
-
+    ImageButton addBtn;
     String mImagePath;
-
     //holds the fields to get the latest data onSubmit
     List<Pair<Spinner, EditText>> fieldViews = new ArrayList<>();
-
+    private ZXingScannerView mScannerView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -113,7 +112,6 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
                 return false;
             }
         });
-
         //enable scrolling at edit text inside scroll view
         ocrGoogleVisionET.setOnTouchListener(new View.OnTouchListener() {
             public boolean onTouch(View v, MotionEvent event) {
@@ -165,6 +163,8 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
         mNotesET = (EditText) findViewById(R.id.notes);
         mScannerView = new ZXingScannerView(this);   // Programmatically initialize the scanner view
         fieldsContainerLL = (LinearLayout) findViewById(R.id.data_container);
+        addBtn = (ImageButton) findViewById(R.id.addBtn);
+
     }
 
     @Override
@@ -338,6 +338,8 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
 
         addRows(fieldList);
 
+        addBtn.setVisibility(View.VISIBLE);
+
         cameraDialog.dismiss();
     }
 
@@ -377,6 +379,7 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
 
                                     List<Field> fieldList = FieldsParsing.parseOCRResult(description);
                                     addRows(fieldList);
+                                    addBtn.setVisibility(View.VISIBLE);
                                 }
                             }
                         } catch (JSONException e) {
@@ -416,6 +419,7 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
             final LinearLayout layout = new LinearLayout(MainActivity.this);
             layout.setOrientation(LinearLayout.HORIZONTAL);
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            fieldsContainerLL.setWeightSum(10);
             layout.setLayoutParams(params);
 
             Spinner typeSP = ViewsUtils.createTypeSP(this, field.getType());
@@ -437,6 +441,24 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
 
             fieldViews.add(spinnerEditTextPair);
         }
+
+    }
+
+    private void addCustomRow() {
+
+        final View row = LayoutInflater.from(MainActivity.this).inflate(R.layout.new_row, null);
+        row.findViewById(R.id.remove).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                fieldsContainerLL.removeView(row);
+            }
+        });
+
+        fieldsContainerLL.addView(row);
+    }
+
+    public void AddCustomRow2(View view) {
+        addCustomRow();
     }
 
 
@@ -473,7 +495,7 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
 
             List<Field> fieldList = FieldsParsing.parseOCRResult(ocrResult);
             addRows(fieldList);
-
+            addBtn.setVisibility(View.VISIBLE);
             pd.dismiss();
         }
 

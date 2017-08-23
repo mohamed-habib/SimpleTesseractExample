@@ -5,6 +5,8 @@
         <item>Take a Photo</item>
     </string-array>
     <string name="lang">Language</string>
+    <string name="row_type">type</string>
+    <string name="data">row_data</string>
 
     <string-array name="lang_arrays">
         <item>Arabic</item>

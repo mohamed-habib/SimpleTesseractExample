@@ -179,9 +179,20 @@
                 android:id="@+id/data_container"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical" />
+                android:orientation="vertical"></LinearLayout>
+
 
         </ScrollView>
+
+        <ImageButton
+            android:id="@+id/addBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="10dp"
+            android:background="@android:color/transparent"
+            android:onClick="AddCustomRow2"
+            android:src="@drawable/ic_add"
+            android:visibility="visible" />
 
         <LinearLayout
             android:id="@+id/OCRTextContainer_Notes"
