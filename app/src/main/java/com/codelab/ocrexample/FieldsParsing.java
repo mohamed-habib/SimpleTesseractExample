@@ -10,10 +10,13 @@ import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static com.codelab.ocrexample.data.model.Field.Email;
 import static com.codelab.ocrexample.data.model.Field.Job;
+import static com.codelab.ocrexample.data.model.Field.Name;
+import static com.codelab.ocrexample.data.model.Field.Other;
 import static com.codelab.ocrexample.data.model.Field.Phone;
 import static com.codelab.ocrexample.data.model.Field.URL;
 
@@ -23,44 +26,59 @@ import static com.codelab.ocrexample.data.model.Field.URL;
 
 public class FieldsParsing {
 
-    static List<String> job_titles = Arrays.asList("Manager"," HR ","Technical","Co-Founder","CEO"
-                                            ,"Financial","Administrator","Admin","Developer"
-                                            ,"Engineer","Programmer","Sales","Analyst","Architect "
-                                            ,"Leader","President","Chief","Officer","Designer"
-                                            ,"Senior","Junior","Project","Supervisor","Specialist");
+    static List<String> job_titles = Arrays.asList("Manager", " HR ", "Technical", "Co-Founder", "CEO"
+            , "Financial", "Administrator", "Admin", "Developer"
+            , "Engineer", "Programmer", "Sales", "Analyst", "Architect "
+            , "Leader", "President", "Chief", "Officer", "Designer"
+            , "Senior", "Junior", "Project", "Supervisor", "Specialist");
 
     public static boolean isValidURL(String URL) {
         String url = URL.trim().replaceAll("\\s+", "");
-        String pattern = "(https?:\\/\\/(?:www\\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\\.[^\\s]{2,}|www\\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\\.[^\\s]{2,}|https?:\\/\\/(?:www\\.|(?!www))[a-zA-Z0-9]\\.[^\\s]{2,}|www\\.[a-zA-Z0-9]\\.[^\\s]{2,})";
-        Pattern r = Pattern.compile(pattern);
-
-        return r.matcher(url).matches();
+//        String pattern = "(https?:\\/\\/(?:www\\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\\.[^\\s]{2,}|www\\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\\.[^\\s]{2,}|https?:\\/\\/(?:www\\.|(?!www))[a-zA-Z0-9]\\.[^\\s]{2,}|www\\.[a-zA-Z0-9]\\.[^\\s]{2,})";
+//        Pattern r = Pattern.compile(pattern);
+        return Patterns.WEB_URL.matcher(url).matches();
     }
 
     public static boolean isValidEmail(String text) {
         String email = text.trim().replaceAll("\\s", "");
-        String pattern = "^[A-Za-z0-9+_.-]+@(.+)$\n";
-        Pattern r = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
+//        String pattern = "^[A-Za-z0-9+_.-]+@(.+)$\n";
+//        Pattern r = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
         return Patterns.EMAIL_ADDRESS.matcher(email).matches();
     }
 
     public static String getAccuString(String line) {
-        return line.replaceAll("\\s+", "");
+//        return line.replaceAll("\\s+", "");
+        return line;
     }
 
     public static List<String> getPhoneNumbers(String text) {
         List<String> phoneNumbers = new ArrayList<>();
-
-        for (PhoneNumberMatch temp : PhoneNumberUtil.getInstance().findNumbers(text, "EG")) {
-            phoneNumbers.add(getAccuString(PhoneNumberUtil.getInstance().format(temp.number(), PhoneNumberUtil.PhoneNumberFormat.NATIONAL)));
+        for (PhoneNumberMatch temp : PhoneNumberUtil.getInstance().findNumbers(text, null)) {
+            phoneNumbers.add(getAccuString(PhoneNumberUtil.getInstance().format(temp.number(), PhoneNumberUtil.PhoneNumberFormat.INTERNATIONAL)));
         }
-
         return phoneNumbers;
     }
 
-    public static boolean containsAKeyword(String subString, List<String> keywords){
-        for(String keyword : keywords){
-            if(subString.contains(keyword)){
+    public static String getPhoneNumber(String text) {
+        Pattern pattern = Pattern.compile("\\d{3}-\\d{3}-\\d{4}");
+        Matcher matcher = pattern.matcher(text);
+        if (matcher.find()) {
+            return matcher.group(0);
+        }
+        return "";
+    }
+
+
+//    private static boolean isValidPhoneNumber(String number) {
+//        Pattern pattern = Pattern.compile("\\d{3}-\\d{3}-\\d{4}");
+//        Matcher matcher = pattern.matcher(number);
+//        return matcher.find();
+//        return PhoneNumberUtils.isGlobalPhoneNumber(phoneNumber);
+//    }
+
+    public static boolean containsAKeyword(String subString, List<String> keywords) {
+        for (String keyword : keywords) {
+            if (subString.contains(keyword)) {
                 return true;
             }
         }
@@ -70,8 +88,10 @@ public class FieldsParsing {
     @NonNull
     public static List<Field> parseOCRResult(String ocrResult) {
         List<Field> fieldList = new ArrayList<>();
-
         List<String> numbers = getPhoneNumbers(ocrResult);
+        // remove numbers
+        for (String number : numbers)
+            ocrResult = ocrResult.replace(number, "");
 
         // remove numbers
         for (String number : numbers)
@@ -81,12 +101,16 @@ public class FieldsParsing {
             fieldList.add(new Field(Phone, number));
 
         for (String line : ocrResult.split("[\\r\\n/]+")) {
+//            if (getKeyWords(line) != null) {
+//
+//            }
             if (isValidEmail(line)) {
                 fieldList.add(new Field(Email, line));
             } else if (isValidURL(line)) {
                 fieldList.add(new Field(URL, line));
-            }
-            else if (containsAKeyword(line, job_titles)) {
+            } else if (isValidText(line)) {
+                fieldList.add(new Field(Other, line));
+            } else if (containsAKeyword(line, job_titles)) {
                 fieldList.add(new Field(Job, line));
             }
 //            else if(Pattern.compile("[^A-Za-z0-9]").matcher(line).matches()){
@@ -95,4 +119,31 @@ public class FieldsParsing {
         }
         return fieldList;
     }
+
+    private static boolean hasKeyWords(String line) {
+        return false;
+    }
+
+    private static boolean isValidText(String line) {
+
+        return !Pattern.compile("[\\s@&,.?$+-]+").matcher(line).matches();
+    }
+
+    @NonNull
+    public static List<Field> parseQRCode(String cardData) {
+        List<Field> fieldList = new ArrayList<>();
+        String data[] = cardData.split("[\\r?\\n]+"); // split result lines
+        for (String s : data) {
+            if (s.startsWith("N:"))
+                fieldList.add(new Field(Name, s.substring(s.indexOf(":") + 1)));
+            else if (s.startsWith("TEL:"))
+                fieldList.add(new Field(Phone, s.substring(s.indexOf(":") + 1)));
+            else if (s.startsWith("ORG:"))
+                fieldList.add(new Field(Other, s.substring(s.indexOf(":") + 1)));
+            else if (s.startsWith("EMAIL:"))
+                fieldList.add(new Field(Email, s.substring(s.indexOf(":") + 1)));
+        }
+        return fieldList;
+    }
+
 }

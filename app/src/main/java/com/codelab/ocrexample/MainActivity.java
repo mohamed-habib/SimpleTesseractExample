@@ -68,10 +68,6 @@ import pl.tajchert.nammu.Nammu;
 import pl.tajchert.nammu.PermissionCallback;
 
 import static android.view.View.GONE;
-import static com.codelab.ocrexample.data.model.Field.Email;
-import static com.codelab.ocrexample.data.model.Field.Name;
-import static com.codelab.ocrexample.data.model.Field.Other;
-import static com.codelab.ocrexample.data.model.Field.Phone;
 
 public class MainActivity extends AppCompatActivity implements ZXingScannerView.ResultHandler {
 
@@ -322,19 +318,7 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
 
         ocrMobileVisionET.setText(cardData);
 
-        List<Field> fieldList = new ArrayList<>();
-
-        String data[] = cardData.split("[\\r?\\n]+"); // split result lines
-        for (String s : data) {
-            if (s.startsWith("N:"))
-                fieldList.add(new Field(Name, s.substring(s.indexOf(":") + 1)));
-            else if (s.startsWith("TEL:"))
-                fieldList.add(new Field(Phone, s.substring(s.indexOf(":") + 1)));
-            else if (s.startsWith("ORG:"))
-                fieldList.add(new Field(Other, s.substring(s.indexOf(":") + 1)));
-            else if (s.startsWith("EMAIL:"))
-                fieldList.add(new Field(Email, s.substring(s.indexOf(":") + 1)));
-        }
+        List<Field> fieldList = FieldsParsing.parseQRCode(cardData);
 
         addRows(fieldList);
 
@@ -461,7 +445,6 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
         addCustomRow();
     }
 
-
     private class MobileVisionAsyncTask extends AsyncTask<Void, Void, String> {
         ProgressDialog pd;
 
@@ -472,18 +455,27 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
         }
 
         protected String doInBackground(Void... args) {
-            StringBuilder ocrResult = new StringBuilder();
+            StringBuilder ocrResultLines = new StringBuilder();
+            StringBuilder ocrResultWords = new StringBuilder();
             if (mImageBitmap != null) {
+                TextRecognizer textRecognizer = null;
                 try {
-                    TextRecognizer textRecognizer = new TextRecognizer.Builder(MainActivity.this).build();
+                    textRecognizer = new TextRecognizer.Builder(MainActivity.this).build();
                     SparseArray<TextBlock> textBlocks = textRecognizer.detect(new Frame.Builder().setBitmap(mImageBitmap).build());
                     for (int i = 0; i < textBlocks.size(); i++) {
-                        ocrResult.append(textBlocks.valueAt(i).getValue()).append("\n").append("\n");
+                        ocrResultLines.append(textBlocks.valueAt(i).getValue()).append("\n").append("\n");
+                        for (int j = 0; j < textBlocks.valueAt(i).getComponents().size(); j++) {
+                            ocrResultWords.append(textBlocks.valueAt(i).getComponents().get(j).getValue()).append(",");
+                        }
                     }
                 } catch (Exception e) {
+                } finally {
+                    if (textRecognizer != null)
+                        textRecognizer.release();
                 }
             }
-            return ocrResult.toString();
+            Log.d("WORDS", ocrResultWords.toString());
+            return ocrResultLines.toString();
         }
 
         protected void onPostExecute(String ocrResult) {
@@ -500,6 +492,5 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
         }
 
     }
-
 
 }

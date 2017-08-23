@@ -2,7 +2,7 @@ package com.codelab.ocrexample.data;
 
 import android.content.Context;
 
- import com.codelab.ocrexample.data.model.SendDataRequest;
+import com.codelab.ocrexample.data.model.SendDataRequest;
 import com.google.gson.Gson;
 
 import org.json.JSONException;
@@ -14,8 +14,8 @@ public class ReadImageAPI {
 
     public static void readImage(Context pContext,
                                  com.android.volley.Response.Listener<JSONObject> responseListener
-                            , com.android.volley.Response.ErrorListener errorListener
-                            , boolean cacheEnabled, SendDataRequest sendDataRequest ) {
+            , com.android.volley.Response.ErrorListener errorListener
+            , boolean cacheEnabled, SendDataRequest sendDataRequest) {
 
 
         String tag_json_obj = "reatText";
@@ -31,8 +31,8 @@ public class ReadImageAPI {
 
         try {
             VolleyConnector.getInstance(serverUrl)
-                   .post(servicePath,headers,new JSONObject(json),contentType,tag_json_obj,responseListener
-                           ,errorListener,cacheEnabled);
+                    .post(servicePath, headers, new JSONObject(json), contentType, tag_json_obj, responseListener
+                            , errorListener, cacheEnabled);
         } catch (JSONException e) {
             e.printStackTrace();
         }
