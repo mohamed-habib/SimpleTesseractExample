@@ -3,20 +3,18 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:minHeight="40dp"
-    android:orientation="horizontal"
-    android:padding="5dp"
-    android:weightSum="10">
+    android:orientation="horizontal">
 
-    <EditText
+    <AutoCompleteTextView
         android:id="@+id/type"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="3"
         android:hint="@string/row_type"
-        android:padding="5dp" />
+        android:paddingBottom="10dp" />
 
     <EditText
-        android:id="@+id/dara"
+        android:id="@+id/data"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="6"
@@ -27,6 +25,7 @@
         android:id="@+id/remove"
         android:layout_width="0dp"
         android:layout_height="match_parent"
+        android:layout_gravity="center_vertical"
         android:layout_weight="1"
         android:background="@android:color/transparent"
         android:src="@drawable/close" />

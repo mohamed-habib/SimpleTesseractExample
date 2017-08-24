@@ -1,6 +1,8 @@
 package com.codelab.ocrexample;
 
 import android.Manifest;
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
@@ -25,6 +27,8 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -420,6 +424,8 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
             layout.setOrientation(LinearLayout.HORIZONTAL);
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             fieldsContainerLL.setWeightSum(10);
+            fieldsContainerLL.setPadding(5, 5, 5, 5);
+            layout.setMinimumHeight(40);
             layout.setLayoutParams(params);
 
             Spinner typeSP = ViewsUtils.createTypeSP(this, field.getType());
@@ -453,14 +459,44 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
                 fieldsContainerLL.removeView(row);
             }
         });
+        AutoCompleteTextView autoCompleteTextView = (AutoCompleteTextView) row.findViewById(R.id.type);
+        String[] types = getResources().getStringArray(R.array.data_types);
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, types);
+        autoCompleteTextView.setAdapter(adapter);
 
         fieldsContainerLL.addView(row);
     }
 
-    public void AddCustomRow2(View view) {
+    public void AddCustomRowClick(View view) {
         addCustomRow();
     }
 
+    public void ShowHideMVbtnClick(View view) {
+        show(ocrMobileVisionET, (ImageButton) view);
+    }
+
+    public void ShowHideGVbtnClick(View view) {
+        show(ocrGoogleVisionET, (ImageButton) view);
+
+    }
+
+    private void show(final EditText editText, ImageButton button) {
+        int shortAnimTime = getResources().getInteger(android.R.integer.config_shortAnimTime);
+        final boolean show = editText.getVisibility() == View.VISIBLE;
+        editText.setVisibility(show ? View.GONE : View.VISIBLE);
+        editText.animate().setDuration(shortAnimTime)
+                .translationYBy(show ? -editText.getHeight() : editText.getHeight())
+                .alpha(
+                        show ? 0 : 1).setListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                editText.setVisibility(show ? View.GONE : View.VISIBLE);
+            }
+        });
+
+        button.setImageResource(show ? R.drawable.ic_show : R.drawable.ic_hide);
+
+    }
 
     private class MobileVisionAsyncTask extends AsyncTask<Void, Void, String> {
         ProgressDialog pd;
@@ -500,6 +536,5 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
         }
 
     }
-
 
 }
