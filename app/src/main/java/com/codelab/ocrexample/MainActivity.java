@@ -1,6 +1,8 @@
 package com.codelab.ocrexample;
 
 import android.Manifest;
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
@@ -70,10 +72,6 @@ import pl.tajchert.nammu.Nammu;
 import pl.tajchert.nammu.PermissionCallback;
 
 import static android.view.View.GONE;
-import static com.codelab.ocrexample.data.model.Field.Email;
-import static com.codelab.ocrexample.data.model.Field.Name;
-import static com.codelab.ocrexample.data.model.Field.Other;
-import static com.codelab.ocrexample.data.model.Field.Phone;
 
 public class MainActivity extends AppCompatActivity implements ZXingScannerView.ResultHandler {
 
