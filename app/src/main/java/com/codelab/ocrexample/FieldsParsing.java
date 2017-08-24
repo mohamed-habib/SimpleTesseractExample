@@ -26,11 +26,15 @@ import static com.codelab.ocrexample.data.model.Field.URL;
 
 public class FieldsParsing {
 
-    static List<String> job_titles = Arrays.asList("Manager", " HR ", "Technical", "Co-Founder", "CEO"
+    static List<String> job_titles = Arrays.asList("Manager", "HR ", "Technical", "Co-Founder", "CEO"
             , "Financial", "Administrator", "Admin", "Developer"
             , "Engineer", "Programmer", "Sales", "Analyst", "Architect "
             , "Leader", "President", "Chief", "Officer", "Designer"
             , "Senior", "Junior", "Project", "Supervisor", "Specialist");
+
+    static List<String> unWantedKeywords = Arrays.asList("Mobile:", "Mobile", "Fax:", "Fax", "Phone:", "Phone", "E-mail:", "E-mail",
+            "Mail", "Mail:", "Email", "Email:", "mail:", "Mob", "Mob.", "Mob:", "Mob.:", ".:", "M:", "M.", "E:", "E.",
+            "Tel:", "Tel.", "Tel");
 
     public static boolean isValidURL(String URL) {
         String url = URL.trim().replaceAll("\\s+", "");
@@ -97,6 +101,12 @@ public class FieldsParsing {
         for (String number : numbers)
             ocrResult = ocrResult.replace(number, "");
 
+
+        //remove unwanted keywords
+        for (String keyword : unWantedKeywords)
+            ocrResult = ocrResult.replaceAll(keyword, "");
+
+
         for (String number : numbers)
             fieldList.add(new Field(Phone, number));
 
@@ -108,10 +118,10 @@ public class FieldsParsing {
                 fieldList.add(new Field(Email, line));
             } else if (isValidURL(line)) {
                 fieldList.add(new Field(URL, line));
-            } else if (isValidText(line)) {
-                fieldList.add(new Field(Other, line));
             } else if (containsAKeyword(line, job_titles)) {
                 fieldList.add(new Field(Job, line));
+            } else if (isValidText(line)) {
+                fieldList.add(new Field(Other, line));
             }
 //            else if(Pattern.compile("[^A-Za-z0-9]").matcher(line).matches()){
 //                fieldList.add(new Field(Other, line));
