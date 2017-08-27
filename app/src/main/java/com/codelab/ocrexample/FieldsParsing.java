@@ -4,8 +4,6 @@ import android.support.annotation.NonNull;
 import android.util.Patterns;
 
 import com.codelab.ocrexample.data.model.Field;
-import com.google.i18n.phonenumbers.PhoneNumberMatch;
-import com.google.i18n.phonenumbers.PhoneNumberUtil;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,9 +30,9 @@ public class FieldsParsing {
             , "Leader", "President", "Chief", "Officer", "Designer"
             , "Senior", "Junior", "Project", "Supervisor", "Specialist");
 
-    static List<String> unWantedKeywords = Arrays.asList("Mobile:", "Mobile", "Fax:", "Fax", "Phone:", "Phone", "E-mail:", "E-mail",
-            "Mail", "Mail:", "Email", "Email:", "mail:", "Mob", "Mob.", "Mob:", "Mob.:", ".:", "M:", "M.", "E:", "E.",
-            "Tel:", "Tel.", "Tel");
+    static List<String> unWantedKeywords = Arrays.asList("Mobile:", "Mobile", "Fax:", "Fax",
+            "Phone:", "Phone", "E-mail:", "E-mail", "Mail", "Mail:", "Email", "Email:", "mail:",
+            "Mob", "Mob.", "Mob:", "Mob.:", ".:", "M:", "M.", "E:", "E.", "Tel:", "Tel.", "Tel");
 
     public static boolean isValidURL(String URL) {
         String url = URL.trim().replaceAll("\\s+", "");
@@ -57,9 +55,17 @@ public class FieldsParsing {
 
     public static List<String> getPhoneNumbers(String text) {
         List<String> phoneNumbers = new ArrayList<>();
-        for (PhoneNumberMatch temp : PhoneNumberUtil.getInstance().findNumbers(text, null)) {
-            phoneNumbers.add(getAccuString(PhoneNumberUtil.getInstance().format(temp.number(), PhoneNumberUtil.PhoneNumberFormat.INTERNATIONAL)));
+        Pattern pattern = Pattern.compile("^[0-9 ()+-]{5,20}+$");
+        for (String line : text.split("[\\r\\n/]+")) {
+            Matcher matcher = pattern.matcher(line);
+            if (matcher.find()) {
+                phoneNumbers.add(line);
+            }
         }
+
+//        for (PhoneNumberMatch temp : PhoneNumberUtil.getInstance().findNumbers(text, null)) {
+//            phoneNumbers.add(getAccuString(PhoneNumberUtil.getInstance().format(temp.number(), PhoneNumberUtil.PhoneNumberFormat.INTERNATIONAL)));
+//        }
         return phoneNumbers;
     }
 
