@@ -31,8 +31,8 @@ public class FieldsParsing {
             , "Senior", "Junior", "Project", "Supervisor", "Specialist");
 
     static List<String> unWantedKeywords = Arrays.asList("Mobile:", "Mobile", "Fax:", "Fax",
-            "Phone:", "Phone", "E-mail:", "E-mail", "Mail", "Mail:", "Email", "Email:", "mail:",
-            "Mob", "Mob.", "Mob:", "Mob.:", ".:", "M:", "M.", "E:", "E.", "Tel:", "Tel.", "Tel");
+            "Phone:", "Phone", "E-mail:", "E-mail", "Mail", "Mail:","Email:", "Email",  "mail:",
+             "Mob\\.", "Mob:","Mob", "\\.:", "M:", "M\\.", "E:", "E\\.", "Tel:", "Tel\\.", "Tel");
 
     public static boolean isValidURL(String URL) {
         String url = URL.trim().replaceAll("\\s+", "");
@@ -98,20 +98,15 @@ public class FieldsParsing {
     @NonNull
     public static List<Field> parseOCRResult(String ocrResult) {
         List<Field> fieldList = new ArrayList<>();
-        List<String> numbers = getPhoneNumbers(ocrResult);
-        // remove numbers
-        for (String number : numbers)
-            ocrResult = ocrResult.replace(number, "");
-
-        // remove numbers
-        for (String number : numbers)
-            ocrResult = ocrResult.replace(number, "");
-
 
         //remove unwanted keywords
         for (String keyword : unWantedKeywords)
             ocrResult = ocrResult.replaceAll(keyword, "");
 
+        List<String> numbers = getPhoneNumbers(ocrResult);
+        // remove numbers
+        for (String number : numbers)
+            ocrResult = ocrResult.replace(number, "");
 
         for (String number : numbers)
             fieldList.add(new Field(Phone, number));
