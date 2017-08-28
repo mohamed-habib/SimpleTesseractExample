@@ -25,9 +25,7 @@ android {
     }
 }
 repositories {
-    maven {
-        url "https://jitpack.io"
-    }
+    maven {  url 'http://guardian.github.com/maven/repo-releases'}
 }
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
@@ -52,6 +50,8 @@ dependencies {
 
     compile 'com.googlecode.libphonenumber:libphonenumber:8.2.0'
     compile 'me.dm7.barcodescanner:zxing:1.9.7'
-
+    compile('net.rdrei.android.dirchooser:library:3.0@aar') {
+        transitive = true;
+    }
     testCompile 'junit:junit:4.12'
 }

@@ -13,7 +13,9 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
+import android.support.annotation.IdRes;
 import android.support.annotation.NonNull;
+import android.support.design.widget.BottomSheetBehavior;
 import android.support.design.widget.Snackbar;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -33,6 +35,7 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.RadioGroup;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -56,6 +59,9 @@ import com.google.zxing.Result;
 import com.theartofdev.edmodo.cropper.CropImage;
 import com.theartofdev.edmodo.cropper.CropImageView;
 
+import net.rdrei.android.dirchooser.DirectoryChooserActivity;
+import net.rdrei.android.dirchooser.DirectoryChooserConfig;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -74,6 +80,7 @@ import pl.tajchert.nammu.PermissionCallback;
 import static android.view.View.GONE;
 
 public class MainActivity extends AppCompatActivity implements ZXingScannerView.ResultHandler {
+    public static final int REQUEST_DIRECTORY = 300;
 
     Bitmap mImageBitmap;
     ImageView mImageView;
@@ -82,13 +89,15 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
     EditText ocrGoogleVisionET;
     EditText mNotesET;
     LinearLayout fieldsContainerLL;
-
     Dialog cameraDialog;
     ImageButton addBtn;
     String mImagePath;
     //holds the fields to get the latest data onSubmit
     List<Pair<Spinner, EditText>> fieldViews = new ArrayList<>();
     private ZXingScannerView mScannerView;
+    String directoryPath = "";
+    View bottomSheet;
+    BottomSheetBehavior mBottomSheetBehavior;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -164,7 +173,22 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
         mScannerView = new ZXingScannerView(this);   // Programmatically initialize the scanner view
         fieldsContainerLL = (LinearLayout) findViewById(R.id.data_container);
         addBtn = (ImageButton) findViewById(R.id.addBtn);
+        bottomSheet = findViewById(R.id.bottom_sheet);
+        mBottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
+        mBottomSheetBehavior.setBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
+            @Override
+            public void onStateChanged(View bottomSheet, int newState) {
+                if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
+                    mBottomSheetBehavior.setPeekHeight(0);
+                }
+            }
 
+            @Override
+            public void onSlide(View bottomSheet, float slideOffset) {
+            }
+        });
+        mBottomSheetBehavior.setPeekHeight(0);
+        mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
     }
 
     @Override
@@ -209,29 +233,78 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
                 mImageBitmap = Utils.getBitmap(mImagePath);
                 mImageView.setImageBitmap(mImageBitmap);
                 mTextView.setVisibility(GONE);
-
+                directoryPath = "";
             } else if (resultCode == CropImage.CROP_IMAGE_ACTIVITY_RESULT_ERROR_CODE) {
                 Exception error = result.getError();
+            }
+        } else if (requestCode == REQUEST_DIRECTORY) {
+            if (resultCode == DirectoryChooserActivity.RESULT_CODE_DIR_SELECTED) {
+                cleanForm();
+                directoryPath = data.getStringExtra(DirectoryChooserActivity.RESULT_SELECTED_DIR);
+                mTextView.setVisibility(View.VISIBLE);
+                mTextView.setText("Reading from " + directoryPath);
+
             }
         }
     }
 
     public void runOCRClick_MV(View view) {
-        if (checkForImageCapture(view)) return;
-
         ocrMobileVisionET.setText("");
-        new MobileVisionAsyncTask().execute();
+        if (!directoryPath.equals("")) {
+            new MobileVisionBulkAsyncTask().execute(directoryPath);
+        } else {
+            if (checkForImageCapture(view)) return;
+            new MobileVisionAsyncTask().execute(mImagePath);
+        }
     }
 
     public void RunOCRClick_GV(View view) {
-        if (checkForImageCapture(view)) return;
-
         ocrGoogleVisionET.setText("");
-        executeGoogleCloudOCR();
+        if (!directoryPath.equals("")) {
+            Snackbar.make(view, "Not implemented yet", Snackbar.LENGTH_LONG).show();
+            bulkExecuteGoogleCloudOCR(directoryPath);
+        } else {
+            if (checkForImageCapture(view)) return;
+            executeGoogleCloudOCR(mImagePath);
+        }
+    }
+
+    //TODO: add new Button
+    public void RunOCRClick_GV_AND_MV(View view) {
+        /// TODO:
     }
 
     public void onSelectImageClick(View view) {
-        CropImage.activity(null).setGuidelines(CropImageView.Guidelines.ON).start(MainActivity.this);
+        mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+
+        RadioGroup radioGroup = (RadioGroup) findViewById(R.id.choose_image_rg);
+        radioGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup group, @IdRes int checkedId) {
+                switch (checkedId) {
+                    case R.id.single_image:
+                        mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                        CropImage.activity(null).setGuidelines(CropImageView.Guidelines.ON).start(MainActivity.this);
+                        break;
+                    case R.id.directory:
+                        mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                        final Intent chooserIntent = new Intent(MainActivity.this, DirectoryChooserActivity.class);
+
+                        final DirectoryChooserConfig config = DirectoryChooserConfig.builder()
+                                .newDirectoryName("DirChooserSample")
+                                .allowReadOnlyDirectory(true)
+                                .allowNewDirectoryNameModification(false)
+                                .build();
+
+                        chooserIntent.putExtra(DirectoryChooserActivity.EXTRA_CONFIG, config);
+
+                        startActivityForResult(chooserIntent, REQUEST_DIRECTORY);
+                        break;
+
+                }
+            }
+        });
+
     }
 
     public void submitClick(View view) {
@@ -244,6 +317,10 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
                 , cardFields.getJobs(), cardFields.getNames(), cardFields.getPhones(), cardFields.getUrls(), cardFields.getOthers());
         card.insert();
 
+        cleanForm();
+    }
+
+    private void cleanForm() {
         ocrMobileVisionET.setText("");
         ocrGoogleVisionET.setText("");
         mNotesET.setText("");
@@ -339,9 +416,10 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
         });
     }
 
-    private void executeGoogleCloudOCR() {
+    private void executeGoogleCloudOCR(String bitmapPath) {
         List<String> languages = Arrays.asList("en");
-        String base64Image = Utils.bitmapToBase64(mImageBitmap);
+        Bitmap imageBitmap = Utils.getBitmap(bitmapPath);
+        String base64Image = Utils.bitmapToBase64(imageBitmap);
 
         if (NetworkUtilies.isConnectingToInternet(this)) {
             final ProgressDialog pd = setupProgressDialog();
@@ -350,6 +428,8 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
                 @Override
                 public void onResponse(JSONObject response) {
                     pd.dismiss();
+
+                    String ocrResult = "";
                     Log.d("onResponse", "Response");
                     if (response != null) {
                         try {
@@ -360,19 +440,21 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
                                 JSONArray textAnnotationsJsonArray = jsonObject.getJSONArray("textAnnotations");
                                 if (textAnnotationsJsonArray.length() > 0) {
                                     JSONObject textAnnotationJsonObject = textAnnotationsJsonArray.getJSONObject(0);
-                                    String description = textAnnotationJsonObject.getString("description");
-                                    Log.d("onResponse", "description: " + description);
-
-                                    ocrGoogleVisionET.setText(description);
-
-                                    List<Field> fieldList = FieldsParsing.parseOCRResult(description);
-                                    addRows(fieldList);
-                                    addBtn.setVisibility(View.VISIBLE);
+                                    ocrResult = textAnnotationJsonObject.getString("description");
+                                    Log.d("onResponse", "description: " + ocrResult);
                                 }
                             }
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
+                        if (!ocrResult.equals("")) {
+                            ocrGoogleVisionET.setText(ocrResult);
+
+                            List<Field> fieldList = FieldsParsing.parseOCRResult(ocrResult);
+                            addRows(fieldList);
+                            addBtn.setVisibility(View.VISIBLE);
+                        }
+
                     } else
                         Log.d("onResponse", "Response is Null");
 
@@ -398,6 +480,81 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
         } else {
             Snackbar.make(mImageView, "No Internet Connection", Snackbar.LENGTH_LONG).show();
         }
+    }
+
+    //// TODO
+    private void bulkExecuteGoogleCloudOCR(String directoryPath) {
+//
+//        File directory = new File(directoryPath);
+//
+//        for (File imgFile : directory.listFiles()) {
+//            if (!imgFile.isDirectory()) {
+//                String imagePath = imgFile.getPath();
+//            }
+//        }
+//        List<String> languages = Arrays.asList("en");
+//        Bitmap imageBitmap = Utils.getBitmap(bitmapPath);
+//        String base64Image = Utils.bitmapToBase64(imagePath);
+//
+//        if (NetworkUtilies.isConnectingToInternet(this)) {
+//            final ProgressDialog pd = setupProgressDialog();
+//
+//            APIs.callGoogleCloudOCRAPI(this, languages, base64Image, new Response.Listener<JSONObject>() {
+//                @Override
+//                public void onResponse(JSONObject response) {
+//                    pd.dismiss();
+//
+//                    String ocrResult = "";
+//                    Log.d("onResponse", "Response");
+//                    if (response != null) {
+//                        try {
+//                            Log.d("onResponse", "Response in not Null   " + response.toString());
+//                            JSONArray responsesJsonArray = response.getJSONArray("responses");
+//                            if (responsesJsonArray.length() > 0) {
+//                                JSONObject jsonObject = responsesJsonArray.getJSONObject(0);
+//                                JSONArray textAnnotationsJsonArray = jsonObject.getJSONArray("textAnnotations");
+//                                if (textAnnotationsJsonArray.length() > 0) {
+//                                    JSONObject textAnnotationJsonObject = textAnnotationsJsonArray.getJSONObject(0);
+//                                    ocrResult = textAnnotationJsonObject.getString("description");
+//                                    Log.d("onResponse", "description: " + ocrResult);
+//                                }
+//                            }
+//                        } catch (JSONException e) {
+//                            e.printStackTrace();
+//                        }
+//                        if (!ocrResult.equals("")) {
+//                            ocrGoogleVisionET.setText(ocrResult);
+//
+//                            List<Field> fieldList = FieldsParsing.parseOCRResult(ocrResult);
+//                            addRows(fieldList);
+//                            addBtn.setVisibility(View.VISIBLE);
+//                        }
+//
+//                    } else
+//                        Log.d("onResponse", "Response is Null");
+//
+//                }
+//            }, new Response.ErrorListener() {
+//                @Override
+//                public void onErrorResponse(VolleyError error) {
+//                    pd.dismiss();
+//
+//                    if (error instanceof TimeoutError || error instanceof NoConnectionError) {
+//                        Toast.makeText(MainActivity.this, "TimeoutError || NoConnectionError", Toast.LENGTH_LONG).show();
+//                    } else if (error instanceof AuthFailureError) {
+//                        Toast.makeText(MainActivity.this, "AuthFailureError", Toast.LENGTH_LONG).show();
+//                    } else if (error instanceof ServerError) {
+//                        Toast.makeText(MainActivity.this, "ServerError", Toast.LENGTH_LONG).show();
+//                    } else if (error instanceof NetworkError) {
+//                        Toast.makeText(MainActivity.this, "NetworkError", Toast.LENGTH_LONG).show();
+//                    } else if (error instanceof ParseError) {
+//                        Toast.makeText(MainActivity.this, "ParseError", Toast.LENGTH_LONG).show();
+//                    }
+//                }
+//            });
+//        } else {
+//            Snackbar.make(mImageView, "No Internet Connection", Snackbar.LENGTH_LONG).show();
+//        }
     }
 
     private void addRows(List<Field> fieldList) {
@@ -482,8 +639,9 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
 
     }
 
-    private class MobileVisionAsyncTask extends AsyncTask<Void, Void, String> {
+    private class MobileVisionAsyncTask extends AsyncTask<String, Void, String> {
         ProgressDialog pd;
+        List<String> ocrResultWordList = new ArrayList<>();
 
         @Override
         protected void onPreExecute() {
@@ -491,30 +649,13 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
             pd = setupProgressDialog();
         }
 
-        protected String doInBackground(Void... args) {
-            StringBuilder ocrResultLines = new StringBuilder();
-            StringBuilder ocrResultWords = new StringBuilder();
-            if (mImageBitmap != null) {
-                TextRecognizer textRecognizer = null;
-                try {
-                    textRecognizer = new TextRecognizer.Builder(MainActivity.this).build();
-                    SparseArray<TextBlock> textBlocks = textRecognizer.detect(new Frame.Builder().setBitmap(mImageBitmap).build());
-                    for (int i = 0; i < textBlocks.size(); i++) {
-                        ocrResultLines.append(textBlocks.valueAt(i).getValue()).append("\n").append("\n");
-                        for (int j = 0; j < textBlocks.valueAt(i).getComponents().size(); j++) {
-                            ocrResultWords.append(textBlocks.valueAt(i).getComponents().get(j).getValue()).append(",");
-                        }
-                    }
-                } catch (Exception e) {
-                } finally {
-                    if (textRecognizer != null)
-                        textRecognizer.release();
-                }
-            }
-            Log.d("WORDS", ocrResultWords.toString());
+        protected String doInBackground(String... args) {
+            StringBuilder ocrResultLines = getOCRResult(args[0], ocrResultWordList);
+
             return ocrResultLines.toString();
         }
 
+        @Override
         protected void onPostExecute(String ocrResult) {
             if (ocrResult == null) {
                 pd.dismiss();
@@ -523,11 +664,91 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
             ocrMobileVisionET.setText(ocrResult);
 
             List<Field> fieldList = FieldsParsing.parseOCRResult(ocrResult);
+//            List<Field> fieldList = FieldsParsing.parseOCRResult(ocrResultWordList);
             addRows(fieldList);
             addBtn.setVisibility(View.VISIBLE);
             pd.dismiss();
         }
 
+    }
+
+    /**
+     * gets the OCR result of the images at the given directory path
+     * and saves them in the db automatically
+     */
+    private class MobileVisionBulkAsyncTask extends AsyncTask<String, Void, String> {
+        ProgressDialog pd;
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            pd = setupProgressDialog();
+        }
+
+        @Override
+        protected String doInBackground(String... args) {
+            String path = args[0];
+            File file = new File(path);
+            if (file.isDirectory()) {
+                for (File imgFile : file.listFiles()) {
+                    if (!imgFile.isDirectory()) {
+                        String imagePath = imgFile.getPath();
+                        StringBuilder ocrResultLines = getOCRResult(imagePath, null);
+                        List<Field> fieldList = FieldsParsing.parseOCRResult(ocrResultLines.toString());
+                        CardFields cardFields = new CardFields();
+                        for (Field field : fieldList) {
+                            cardFields.createField(field.getType(), field.getLine());
+                        }
+                        Card card = new Card(imagePath, ocrResultLines.toString(), "", "", UUID.randomUUID(), cardFields.getAddresses(), cardFields.getEmails()
+                                , cardFields.getJobs(), cardFields.getNames(), cardFields.getPhones(), cardFields.getUrls(), cardFields.getOthers());
+                        card.insert();
+                    }
+                }
+            }
+
+            return "";
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+            pd.dismiss();
+        }
+
+    }
+
+    /**
+     * @param ocrResultWordList: result is passed here by reference
+     * @param imagePath
+     * @return string containing the result in lines separated by 2 "\n" and also returns list of words to the the @param ocrResultWordList
+     */
+    @NonNull
+    private StringBuilder getOCRResult(String imagePath, List<String> ocrResultWordList) {
+        Bitmap imageBitmap = Utils.getBitmap(imagePath);
+        StringBuilder ocrResultLines = new StringBuilder();
+        StringBuilder ocrResultWords = new StringBuilder();
+        if (imageBitmap != null) {
+            TextRecognizer textRecognizer = null;
+            try {
+                textRecognizer = new TextRecognizer.Builder(MainActivity.this).build();
+                SparseArray<TextBlock> textBlocks = textRecognizer.detect(new Frame.Builder().setBitmap(imageBitmap).build());
+                for (int i = 0; i < textBlocks.size(); i++) {
+                    String value = textBlocks.valueAt(i).getValue();
+                    ocrResultLines.append(value).append("\n").append("\n");
+                    for (int j = 0; j < textBlocks.valueAt(i).getComponents().size(); j++) {
+                        String word = textBlocks.valueAt(i).getComponents().get(j).getValue();
+                        if (ocrResultWordList != null)
+                            ocrResultWordList.add(word);
+                        ocrResultWords.append(word).append(",");
+                    }
+                }
+            } catch (Exception ignore) {
+            } finally {
+                if (textRecognizer != null)
+                    textRecognizer.release();
+            }
+        }
+        Log.d("WORDS", ocrResultWords.toString());
+        return ocrResultLines;
     }
 
 
