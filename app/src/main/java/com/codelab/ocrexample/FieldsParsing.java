@@ -30,9 +30,9 @@ public class FieldsParsing {
             , "Leader", "President", "Chief", "Officer", "Designer"
             , "Senior", "Junior", "Project", "Supervisor", "Specialist");
 
-    static List<String> unWantedKeywords = Arrays.asList("Mobile:", "Mobile", "Fax:", "Fax",
-            "Phone:", "Phone", "E-mail:", "E-mail", "Mail", "Mail:","Email:", "Email",  "mail:",
-             "Mob\\.", "Mob:","Mob", "\\.:", "M:", "M\\.", "E:", "E\\.", "Tel:", "Tel\\.", "Tel");
+    static List<String> unWantedKeywords = Arrays.asList("Mobile: ", "Mobile ", "Fax: ", "Fax ",
+            "Phone: ", "Phone ", "E-mail: ", "E-mail ", "Mail ", "Mail :", "Email: ", "Email ", "mail: ",
+            "Mob\\. ", "Mob: ", "Mob ", "\\.: ", "M: ", "M\\. ", "E: ", "E\\. ", "Tel: ", "Tel\\. ", "Tel ");
 
     public static boolean isValidURL(String URL) {
         String url = URL.trim().replaceAll("\\s+", "");

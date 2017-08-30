@@ -10,19 +10,15 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Environment;
 import android.support.annotation.IdRes;
 import android.support.annotation.NonNull;
 import android.support.design.widget.BottomSheetBehavior;
 import android.support.design.widget.Snackbar;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.text.TextUtils;
 import android.util.Log;
 import android.util.Pair;
-import android.util.SparseArray;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -40,21 +36,8 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.android.volley.AuthFailureError;
-import com.android.volley.NetworkError;
-import com.android.volley.NoConnectionError;
-import com.android.volley.ParseError;
-import com.android.volley.Response;
-import com.android.volley.ServerError;
-import com.android.volley.TimeoutError;
-import com.android.volley.VolleyError;
-import com.codelab.ocrexample.data.APIs;
-import com.codelab.ocrexample.data.model.Card;
 import com.codelab.ocrexample.data.model.CardFields;
 import com.codelab.ocrexample.data.model.Field;
-import com.google.android.gms.vision.Frame;
-import com.google.android.gms.vision.text.TextBlock;
-import com.google.android.gms.vision.text.TextRecognizer;
 import com.google.zxing.Result;
 import com.theartofdev.edmodo.cropper.CropImage;
 import com.theartofdev.edmodo.cropper.CropImageView;
@@ -62,16 +45,8 @@ import com.theartofdev.edmodo.cropper.CropImageView;
 import net.rdrei.android.dirchooser.DirectoryChooserActivity;
 import net.rdrei.android.dirchooser.DirectoryChooserConfig;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
 
 import me.dm7.barcodescanner.zxing.ZXingScannerView;
 import pl.tajchert.nammu.Nammu;
@@ -79,12 +54,11 @@ import pl.tajchert.nammu.PermissionCallback;
 
 import static android.view.View.GONE;
 
-public class MainActivity extends AppCompatActivity implements ZXingScannerView.ResultHandler {
+public class MainActivity extends AppCompatActivity implements MainActivityContractor.View, ZXingScannerView.ResultHandler {
     public static final int REQUEST_DIRECTORY = 300;
 
-    Bitmap mImageBitmap;
     ImageView mImageView;
-    TextView mTextView;
+    TextView mStatusText;
     EditText ocrMobileVisionET;
     EditText ocrGoogleVisionET;
     EditText mNotesET;
@@ -98,12 +72,16 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
     String directoryPath = "";
     View bottomSheet;
     BottomSheetBehavior mBottomSheetBehavior;
+    private ProgressDialog pd;
+    MainActivityPresenter mainActivityPresenter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Nammu.init(this);
+        mainActivityPresenter = new MainActivityPresenter(this, this);
+
 
         initViews();
 
@@ -166,7 +144,7 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
 
     private void initViews() {
         mImageView = (ImageView) findViewById(R.id.imageView);
-        mTextView = (TextView) findViewById(R.id.textView);
+        mStatusText = (TextView) findViewById(R.id.textView);
         ocrMobileVisionET = (EditText) findViewById(R.id.ocr_mv_et);
         ocrGoogleVisionET = (EditText) findViewById(R.id.ocr_gv_et);
         mNotesET = (EditText) findViewById(R.id.notes);
@@ -216,6 +194,16 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
     }
 
     @Override
+    public String getImagePath() {
+        return mImagePath;
+    }
+
+    @Override
+    public void showToast(String text) {
+        Toast.makeText(MainActivity.this, text, Toast.LENGTH_LONG).show();
+    }
+
+    @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == CropImage.CROP_IMAGE_ACTIVITY_REQUEST_CODE) {
@@ -223,16 +211,7 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
             if (resultCode == RESULT_OK) {
                 Uri resultUri = result.getUri();
                 mImagePath = resultUri.getPath();
-                try {
-                    File src = new File(mImagePath);
-                    Utils.copyFile(new File(mImagePath), new File(Environment.getExternalStorageDirectory() + "/OCR/" + src.getName()));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-                mImageBitmap = Utils.getBitmap(mImagePath);
-                mImageView.setImageBitmap(mImageBitmap);
-                mTextView.setVisibility(GONE);
+                mainActivityPresenter.imageSelected();
                 directoryPath = "";
             } else if (resultCode == CropImage.CROP_IMAGE_ACTIVITY_RESULT_ERROR_CODE) {
                 Exception error = result.getError();
@@ -241,32 +220,52 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
             if (resultCode == DirectoryChooserActivity.RESULT_CODE_DIR_SELECTED) {
                 cleanForm();
                 directoryPath = data.getStringExtra(DirectoryChooserActivity.RESULT_SELECTED_DIR);
-                mTextView.setVisibility(View.VISIBLE);
-                mTextView.setText("Reading from " + directoryPath);
-
+                showStatusTextView();
+                updateStatusTextView("Reading from " + directoryPath);
             }
         }
     }
 
+    private void showStatusTextView() {
+        mStatusText.setVisibility(View.VISIBLE);
+    }
+
+    @Override
+    public void hideStatusText() {
+        mStatusText.setVisibility(GONE);
+    }
+
+    @Override
+    public String getSelectedDirectory() {
+        return directoryPath;
+    }
+
     public void runOCRClick_MV(View view) {
         ocrMobileVisionET.setText("");
-        if (!directoryPath.equals("")) {
-            new MobileVisionBulkAsyncTask().execute(directoryPath);
-        } else {
-            if (checkForImageCapture(view)) return;
-            new MobileVisionAsyncTask().execute(mImagePath);
-        }
+        if (!getSelectedDirectory().equals(""))
+            mainActivityPresenter.calculateBulkMobileVisionOCR();
+        else
+            mainActivityPresenter.calculateMobileVisionOCR();
     }
 
     public void RunOCRClick_GV(View view) {
         ocrGoogleVisionET.setText("");
-        if (!directoryPath.equals("")) {
+        if (!getSelectedDirectory().equals("")) {
             Snackbar.make(view, "Not implemented yet", Snackbar.LENGTH_LONG).show();
             bulkExecuteGoogleCloudOCR(directoryPath);
         } else {
-            if (checkForImageCapture(view)) return;
-            executeGoogleCloudOCR(mImagePath);
+            mainActivityPresenter.executeGoogleCloudOCR();
         }
+    }
+
+    @Override
+    public void showNoSelectedImageError() {
+        showSnackBar("Choose card image", "CHOOSE IMAGE", new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onSelectImageClick(null);
+            }
+        });
     }
 
     //TODO: add new Button
@@ -288,17 +287,7 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
                         break;
                     case R.id.directory:
                         mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
-                        final Intent chooserIntent = new Intent(MainActivity.this, DirectoryChooserActivity.class);
-
-                        final DirectoryChooserConfig config = DirectoryChooserConfig.builder()
-                                .newDirectoryName("DirChooserSample")
-                                .allowReadOnlyDirectory(true)
-                                .allowNewDirectoryNameModification(false)
-                                .build();
-
-                        chooserIntent.putExtra(DirectoryChooserActivity.EXTRA_CONFIG, config);
-
-                        startActivityForResult(chooserIntent, REQUEST_DIRECTORY);
+                        startDirectorySelector();
                         break;
 
                 }
@@ -307,32 +296,36 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
 
     }
 
-    public void submitClick(View view) {
-        if (checkForImageCapture(view)) return;
-        if (checkForCardText(view)) return;
-        //create Card object and save to db
-        CardFields cardFields = getCardFields();
-        Card card = new Card(mImagePath, ocrMobileVisionET.getText().toString(), ocrGoogleVisionET.getText().toString()
-                , mNotesET.getText().toString(), UUID.randomUUID(), cardFields.getAddresses(), cardFields.getEmails()
-                , cardFields.getJobs(), cardFields.getNames(), cardFields.getPhones(), cardFields.getUrls(), cardFields.getOthers());
-        card.insert();
-
-        cleanForm();
+    private void startDirectorySelector() {
+        final Intent chooserIntent = new Intent(MainActivity.this, DirectoryChooserActivity.class);
+        final DirectoryChooserConfig config = DirectoryChooserConfig.builder()
+                .newDirectoryName("DirChooserSample")
+                .allowReadOnlyDirectory(true)
+                .allowNewDirectoryNameModification(false)
+                .build();
+        chooserIntent.putExtra(DirectoryChooserActivity.EXTRA_CONFIG, config);
+        startActivityForResult(chooserIntent, REQUEST_DIRECTORY);
     }
 
-    private void cleanForm() {
+    public void submitClick(View view) {
+        mainActivityPresenter.onSubmit();
+    }
+
+    @Override
+    public void cleanForm() {
         ocrMobileVisionET.setText("");
         ocrGoogleVisionET.setText("");
+        showStatusTextView();
+        updateStatusTextView("Choose Image");
         mNotesET.setText("");
         mImageView.setImageDrawable(null);
         mImagePath = null;
-        mImageBitmap = null;
         fieldViews.clear();
         fieldsContainerLL.removeAllViewsInLayout();
     }
 
-    @NonNull
-    private CardFields getCardFields() {
+    @Override
+    public CardFields getCardFields() {
         CardFields cardFields = new CardFields();
         for (Pair spinnerEdiText : fieldViews) {
             Spinner spinner = (Spinner) spinnerEdiText.first;
@@ -342,27 +335,6 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
             cardFields.createField(type, line);
         }
         return cardFields;
-    }
-
-    private boolean checkForImageCapture(View view) {
-        if (mImagePath == null) {
-            Snackbar.make(view, "Choose card image", Snackbar.LENGTH_SHORT).setAction("CHOOSE IMAGE", new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    onSelectImageClick(null);
-                }
-            }).show();
-            return true;
-        }
-        return false;
-    }
-
-    private boolean checkForCardText(View view) {
-        if (TextUtils.isEmpty(ocrMobileVisionET.getText()) && TextUtils.isEmpty(ocrGoogleVisionET.getText())) {
-            Snackbar.make(view, "Card doesn't have text, Add some info", Snackbar.LENGTH_SHORT).show();
-            return true;
-        }
-        return false;
     }
 
     public void onScanQRClick(View view) {
@@ -414,72 +386,7 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
             public void onCancel(DialogInterface dialog) {
             }
         });
-    }
 
-    private void executeGoogleCloudOCR(String bitmapPath) {
-        List<String> languages = Arrays.asList("en");
-        Bitmap imageBitmap = Utils.getBitmap(bitmapPath);
-        String base64Image = Utils.bitmapToBase64(imageBitmap);
-
-        if (NetworkUtilies.isConnectingToInternet(this)) {
-            final ProgressDialog pd = setupProgressDialog();
-
-            APIs.callGoogleCloudOCRAPI(this, languages, base64Image, new Response.Listener<JSONObject>() {
-                @Override
-                public void onResponse(JSONObject response) {
-                    pd.dismiss();
-
-                    String ocrResult = "";
-                    Log.d("onResponse", "Response");
-                    if (response != null) {
-                        try {
-                            Log.d("onResponse", "Response in not Null   " + response.toString());
-                            JSONArray responsesJsonArray = response.getJSONArray("responses");
-                            if (responsesJsonArray.length() > 0) {
-                                JSONObject jsonObject = responsesJsonArray.getJSONObject(0);
-                                JSONArray textAnnotationsJsonArray = jsonObject.getJSONArray("textAnnotations");
-                                if (textAnnotationsJsonArray.length() > 0) {
-                                    JSONObject textAnnotationJsonObject = textAnnotationsJsonArray.getJSONObject(0);
-                                    ocrResult = textAnnotationJsonObject.getString("description");
-                                    Log.d("onResponse", "description: " + ocrResult);
-                                }
-                            }
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-                        if (!ocrResult.equals("")) {
-                            ocrGoogleVisionET.setText(ocrResult);
-
-                            List<Field> fieldList = FieldsParsing.parseOCRResult(ocrResult);
-                            addRows(fieldList);
-                            addBtn.setVisibility(View.VISIBLE);
-                        }
-
-                    } else
-                        Log.d("onResponse", "Response is Null");
-
-                }
-            }, new Response.ErrorListener() {
-                @Override
-                public void onErrorResponse(VolleyError error) {
-                    pd.dismiss();
-
-                    if (error instanceof TimeoutError || error instanceof NoConnectionError) {
-                        Toast.makeText(MainActivity.this, "TimeoutError || NoConnectionError", Toast.LENGTH_LONG).show();
-                    } else if (error instanceof AuthFailureError) {
-                        Toast.makeText(MainActivity.this, "AuthFailureError", Toast.LENGTH_LONG).show();
-                    } else if (error instanceof ServerError) {
-                        Toast.makeText(MainActivity.this, "ServerError", Toast.LENGTH_LONG).show();
-                    } else if (error instanceof NetworkError) {
-                        Toast.makeText(MainActivity.this, "NetworkError", Toast.LENGTH_LONG).show();
-                    } else if (error instanceof ParseError) {
-                        Toast.makeText(MainActivity.this, "ParseError", Toast.LENGTH_LONG).show();
-                    }
-                }
-            });
-        } else {
-            Snackbar.make(mImageView, "No Internet Connection", Snackbar.LENGTH_LONG).show();
-        }
     }
 
     //// TODO
@@ -557,7 +464,8 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
 //        }
     }
 
-    private void addRows(List<Field> fieldList) {
+    @Override
+    public void addRows(List<Field> fieldList) {
         fieldsContainerLL.removeAllViewsInLayout();
 
         for (final Field field : fieldList) {
@@ -639,117 +547,79 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
 
     }
 
-    private class MobileVisionAsyncTask extends AsyncTask<String, Void, String> {
-        ProgressDialog pd;
-        List<String> ocrResultWordList = new ArrayList<>();
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            pd = setupProgressDialog();
-        }
-
-        protected String doInBackground(String... args) {
-            StringBuilder ocrResultLines = getOCRResult(args[0], ocrResultWordList);
-
-            return ocrResultLines.toString();
-        }
-
-        @Override
-        protected void onPostExecute(String ocrResult) {
-            if (ocrResult == null) {
-                pd.dismiss();
-                return;
-            }
-            ocrMobileVisionET.setText(ocrResult);
-
-            List<Field> fieldList = FieldsParsing.parseOCRResult(ocrResult);
-//            List<Field> fieldList = FieldsParsing.parseOCRResult(ocrResultWordList);
-            addRows(fieldList);
-            addBtn.setVisibility(View.VISIBLE);
-            pd.dismiss();
-        }
-
+    @Override
+    public void showProgressBar() {
+        pd = setupProgressDialog();
     }
 
-    /**
-     * gets the OCR result of the images at the given directory path
-     * and saves them in the db automatically
-     */
-    private class MobileVisionBulkAsyncTask extends AsyncTask<String, Void, String> {
-        ProgressDialog pd;
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            pd = setupProgressDialog();
-        }
-
-        @Override
-        protected String doInBackground(String... args) {
-            String path = args[0];
-            File file = new File(path);
-            if (file.isDirectory()) {
-                for (File imgFile : file.listFiles()) {
-                    if (!imgFile.isDirectory()) {
-                        String imagePath = imgFile.getPath();
-                        StringBuilder ocrResultLines = getOCRResult(imagePath, null);
-                        List<Field> fieldList = FieldsParsing.parseOCRResult(ocrResultLines.toString());
-                        CardFields cardFields = new CardFields();
-                        for (Field field : fieldList) {
-                            cardFields.createField(field.getType(), field.getLine());
-                        }
-                        Card card = new Card(imagePath, ocrResultLines.toString(), "", "", UUID.randomUUID(), cardFields.getAddresses(), cardFields.getEmails()
-                                , cardFields.getJobs(), cardFields.getNames(), cardFields.getPhones(), cardFields.getUrls(), cardFields.getOthers());
-                        card.insert();
-                    }
-                }
-            }
-
-            return "";
-        }
-
-        @Override
-        protected void onPostExecute(String s) {
-            pd.dismiss();
-        }
-
+    @Override
+    public void hideProgressBar() {
+        if (pd != null)
+            pd.hide();
     }
 
-    /**
-     * @param ocrResultWordList: result is passed here by reference
-     * @param imagePath
-     * @return string containing the result in lines separated by 2 "\n" and also returns list of words to the the @param ocrResultWordList
-     */
-    @NonNull
-    private StringBuilder getOCRResult(String imagePath, List<String> ocrResultWordList) {
-        Bitmap imageBitmap = Utils.getBitmap(imagePath);
-        StringBuilder ocrResultLines = new StringBuilder();
-        StringBuilder ocrResultWords = new StringBuilder();
-        if (imageBitmap != null) {
-            TextRecognizer textRecognizer = null;
-            try {
-                textRecognizer = new TextRecognizer.Builder(MainActivity.this).build();
-                SparseArray<TextBlock> textBlocks = textRecognizer.detect(new Frame.Builder().setBitmap(imageBitmap).build());
-                for (int i = 0; i < textBlocks.size(); i++) {
-                    String value = textBlocks.valueAt(i).getValue();
-                    ocrResultLines.append(value).append("\n").append("\n");
-                    for (int j = 0; j < textBlocks.valueAt(i).getComponents().size(); j++) {
-                        String word = textBlocks.valueAt(i).getComponents().get(j).getValue();
-                        if (ocrResultWordList != null)
-                            ocrResultWordList.add(word);
-                        ocrResultWords.append(word).append(",");
-                    }
-                }
-            } catch (Exception ignore) {
-            } finally {
-                if (textRecognizer != null)
-                    textRecognizer.release();
-            }
-        }
-        Log.d("WORDS", ocrResultWords.toString());
-        return ocrResultLines;
+    @Override
+    public void updateMobileVisionEditText(String text) {
+        ocrMobileVisionET.setText(text);
     }
 
+    @Override
+    public String getMobileVisionText() {
+        return ocrMobileVisionET.getText().toString();
+    }
 
+    @Override
+    public String getGoogleVisionText() {
+        return ocrGoogleVisionET.getText().toString();
+    }
+
+    @Override
+    public String getNotesText() {
+        return mNotesET.getText().toString();
+    }
+
+    @Override
+    public void updateGoogleVisionEditText(String text) {
+        ocrGoogleVisionET.setText(text);
+    }
+
+    @Override
+    public void updateImageView(Bitmap image) {
+        mImageView.setImageBitmap(image);
+    }
+
+    @Override
+    public void updateStatusTextView(String text) {
+        mStatusText.setText(text);
+    }
+
+    @Override
+    public void showSnackBar(String text, String actionText, View.OnClickListener actionListener) {
+        Snackbar.make(findViewById(R.id.main_content), text, Snackbar.LENGTH_SHORT).setAction(actionText, new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onSelectImageClick(null);
+            }
+        }).show();
+    }
+
+    @Override
+    public void showNetworkError() {
+        Snackbar.make(findViewById(R.id.main_content), "No Internet  Connection", Snackbar.LENGTH_LONG).show();
+    }
+
+    @Override
+    public void showMobileVisionTextError() {
+        Snackbar.make(findViewById(R.id.main_content), "Card doesn't have text, Add some info", Snackbar.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void showAddFieldButton() {
+        addBtn.setVisibility(View.VISIBLE);
+    }
+
+    @Override
+    public void hideAddFieldButton() {
+        addBtn.setVisibility(View.GONE);
+    }
 }
