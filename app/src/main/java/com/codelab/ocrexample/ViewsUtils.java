@@ -57,14 +57,12 @@ public class ViewsUtils {
     }
 
 
-    public static TextView createTypeTV(Context context, int type) {
+    public static TextView createTypeTV(Context context, String type) {
         final TextView textView = new TextView(context);
         LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         textView.setLayoutParams(layoutParams);
 
-        String array[] = context.getResources().getStringArray(R.array.data_types);
-        String text = array[type] + ": ";
-        textView.setText(text);
+        textView.setText(String.format("%s: ", type));
         textView.setTypeface(null, Typeface.BOLD);
         return textView;
     }
