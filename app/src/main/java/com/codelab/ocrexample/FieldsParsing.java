@@ -31,41 +31,38 @@ public class FieldsParsing {
             , "Senior", "Junior", "Project", "Supervisor", "Specialist");
 
     static List<String> unWantedKeywords = Arrays.asList("Mobile: ", "Mobile ", "Fax: ", "Fax ",
-            "Phone: ", "Phone ", "E-mail: ", "E-mail ", "Mail ", "Mail :", "Email: ", "Email ", "mail: ",
-            "Mob\\. ", "Mob: ", "Mob ", "\\.: ", "M: ", "M\\. ", "E: ", "E\\. ", "Tel: ", "Tel\\. ", "Tel ");
+            "Phone: ", "Phone ", "E-mail: ", "E-mail ", "Mail ", "Mail :", "Email: ", "Email ", "mail: "
+            ,"Mob\\.: ","Mob\\. ", "Mob: ", "Mob ", "\\.: ", "M: ", "M\\. ", "E: ", "E\\. "
+            , "Tel: ", "Tel\\. ", "Tel\\.: ","Tel ");
+
+    static List<String> mobileKeywords = Arrays.asList("Mobile\\. ","Mobile: ", "Mobile "
+            ,"Mob\\. ","Mob\\.: ", "Mob: ", "Mob ",  "M: ", "M\\. ","Phone: ", "Phone "
+            ,"Tel: ", "Tel\\. ", "Tel\\.: ","Tel ");
+
+    static List<String> faxKeywords = Arrays.asList("Fax\\.", "Fax\\.: ", "Fax: ", "Fax ");
+
+    static List<String> emailKeywords = Arrays.asList("E-mail: ", "E-mail ", "Mail ", "Mail :",
+            "Email: ", "Email ", "mail: ", "E\\.: ", "E\\. ", "E: ");
 
     public static boolean isValidURL(String URL) {
         String url = URL.trim().replaceAll("\\s+", "");
-//        String pattern = "(https?:\\/\\/(?:www\\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\\.[^\\s]{2,}|www\\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\\.[^\\s]{2,}|https?:\\/\\/(?:www\\.|(?!www))[a-zA-Z0-9]\\.[^\\s]{2,}|www\\.[a-zA-Z0-9]\\.[^\\s]{2,})";
-//        Pattern r = Pattern.compile(pattern);
         return Patterns.WEB_URL.matcher(url).matches();
     }
 
     public static boolean isValidEmail(String text) {
         String email = text.trim().replaceAll("\\s", "");
-//        String pattern = "^[A-Za-z0-9+_.-]+@(.+)$\n";
-//        Pattern r = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
         return Patterns.EMAIL_ADDRESS.matcher(email).matches();
     }
 
-    public static String getAccuString(String line) {
-//        return line.replaceAll("\\s+", "");
-        return line;
-    }
-
-    public static List<String> getPhoneNumbers(String text) {
+    public static List<String> getPhoneNumbers(String text, String delimiter) {
         List<String> phoneNumbers = new ArrayList<>();
         Pattern pattern = Pattern.compile("^[0-9 ()+-]{5,20}+$");
-        for (String line : text.split("[\\r\\n/]+")) {
+        for (String line : text.split(delimiter)) {
             Matcher matcher = pattern.matcher(line);
             if (matcher.find()) {
                 phoneNumbers.add(line);
             }
         }
-
-//        for (PhoneNumberMatch temp : PhoneNumberUtil.getInstance().findNumbers(text, null)) {
-//            phoneNumbers.add(getAccuString(PhoneNumberUtil.getInstance().format(temp.number(), PhoneNumberUtil.PhoneNumberFormat.INTERNATIONAL)));
-//        }
         return phoneNumbers;
     }
 
@@ -77,14 +74,6 @@ public class FieldsParsing {
         }
         return "";
     }
-
-
-//    private static boolean isValidPhoneNumber(String number) {
-//        Pattern pattern = Pattern.compile("\\d{3}-\\d{3}-\\d{4}");
-//        Matcher matcher = pattern.matcher(number);
-//        return matcher.find();
-//        return PhoneNumberUtils.isGlobalPhoneNumber(phoneNumber);
-//    }
 
     public static boolean containsAKeyword(String subString, List<String> keywords) {
         for (String keyword : keywords) {
@@ -100,10 +89,20 @@ public class FieldsParsing {
         List<Field> fieldList = new ArrayList<>();
 
         //remove unwanted keywords
+        for (String keyword : mobileKeywords)
+            ocrResult = ocrResult.replaceAll(keyword, "###"+keyword);
+
+        for (String keyword : faxKeywords)
+            ocrResult = ocrResult.replaceAll(keyword, "###"+keyword);
+
+        for (String keyword : emailKeywords)
+            ocrResult = ocrResult.replaceAll(keyword, "###"+keyword);
+
+        //remove unwanted keywords
         for (String keyword : unWantedKeywords)
             ocrResult = ocrResult.replaceAll(keyword, "");
 
-        List<String> numbers = getPhoneNumbers(ocrResult);
+        List<String> numbers = getPhoneNumbers(ocrResult,"([\\r\\n]+)|(###)");
         // remove numbers
         for (String number : numbers)
             ocrResult = ocrResult.replace(number, "");
@@ -111,10 +110,7 @@ public class FieldsParsing {
         for (String number : numbers)
             fieldList.add(new Field(Phone, number));
 
-        for (String line : ocrResult.split("[\\r\\n/]+")) {
-//            if (getKeyWords(line) != null) {
-//
-//            }
+        for (String line : ocrResult.split("([\\r\\n]+)|(###)")) {
             if (isValidEmail(line)) {
                 fieldList.add(new Field(Email, line));
             } else if (isValidURL(line)) {
@@ -122,11 +118,23 @@ public class FieldsParsing {
             } else if (containsAKeyword(line, job_titles)) {
                 fieldList.add(new Field(Job, line));
             } else if (isValidText(line)) {
-                fieldList.add(new Field(Other, line));
+                if(!line.isEmpty()) {
+                    Pattern pattern = Pattern.compile("^[0-9 ()+-]{0,20}+$");
+                    String splitedLines [] =line.split("/");
+
+                    for (int i=0; i <splitedLines.length; i++) {
+                        Matcher matcher = pattern.matcher(splitedLines[i]);
+                        if (matcher.find()) {
+                            if(splitedLines[i].length() < 5)
+                                fieldList.add(new Field(Phone, splitedLines[i] + splitedLines[i+1]));
+                            else
+                                fieldList.add(new Field(Phone, splitedLines[i]));
+                        }
+                        else
+                            fieldList.add(new Field(Other, line));
+                    }
+                }
             }
-//            else if(Pattern.compile("[^A-Za-z0-9]").matcher(line).matches()){
-//                fieldList.add(new Field(Other, line));
-//            }
         }
         return fieldList;
     }
