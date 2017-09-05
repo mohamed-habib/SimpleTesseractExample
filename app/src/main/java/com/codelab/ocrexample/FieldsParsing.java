@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import autovalue.shaded.org.apache.commons.lang.ArrayUtils;
+
 import static com.codelab.ocrexample.data.model.Field.Email;
 import static com.codelab.ocrexample.data.model.Field.Job;
 import static com.codelab.ocrexample.data.model.Field.Name;
@@ -32,12 +34,12 @@ public class FieldsParsing {
 
     static List<String> unWantedKeywords = Arrays.asList("Mobile: ", "Mobile ", "Fax: ", "Fax ",
             "Phone: ", "Phone ", "E-mail: ", "E-mail ", "Mail ", "Mail :", "Email: ", "Email ", "mail: "
-            ,"Mob\\.: ","Mob\\. ", "Mob: ", "Mob ", "\\.: ", "M: ", "M\\. ", "E: ", "E\\. "
-            , "Tel: ", "Tel\\. ", "Tel\\.: ","Tel ");
+            , "Mob\\.: ", "Mob\\. ", "Mob: ", "Mob ", "\\.: ", "M: ", "M\\. ", "E: ", "E\\. "
+            , "Tel: ", "Tel\\. ", "Tel\\.: ", "Tel ");
 
-    static List<String> mobileKeywords = Arrays.asList("Mobile\\. ","Mobile: ", "Mobile "
-            ,"Mob\\. ","Mob\\.: ", "Mob: ", "Mob ",  "M: ", "M\\. ","Phone: ", "Phone "
-            ,"Tel: ", "Tel\\. ", "Tel\\.: ","Tel ");
+    static List<String> mobileKeywords = Arrays.asList("Mobile\\. ", "Mobile: ", "Mobile "
+            , "Mob\\. ", "Mob\\.: ", "Mob: ", "Mob ", "M: ", "M\\. ", "Phone: ", "Phone "
+            , "Tel: ", "Tel\\. ", "Tel\\.: ", "Tel ");
 
     static List<String> faxKeywords = Arrays.asList("Fax\\.", "Fax\\.: ", "Fax: ", "Fax ");
 
@@ -90,19 +92,19 @@ public class FieldsParsing {
 
         //remove unwanted keywords
         for (String keyword : mobileKeywords)
-            ocrResult = ocrResult.replaceAll(keyword, "###"+keyword);
+            ocrResult = ocrResult.replaceAll(keyword, "###" + keyword);
 
         for (String keyword : faxKeywords)
-            ocrResult = ocrResult.replaceAll(keyword, "###"+keyword);
+            ocrResult = ocrResult.replaceAll(keyword, "###" + keyword);
 
         for (String keyword : emailKeywords)
-            ocrResult = ocrResult.replaceAll(keyword, "###"+keyword);
+            ocrResult = ocrResult.replaceAll(keyword, "###" + keyword);
 
         //remove unwanted keywords
         for (String keyword : unWantedKeywords)
             ocrResult = ocrResult.replaceAll(keyword, "");
 
-        List<String> numbers = getPhoneNumbers(ocrResult,"([\\r\\n]+)|(###)");
+        List<String> numbers = getPhoneNumbers(ocrResult, "([\\r\\n]+)|(###)");
         // remove numbers
         for (String number : numbers)
             ocrResult = ocrResult.replace(number, "");
@@ -118,19 +120,19 @@ public class FieldsParsing {
             } else if (containsAKeyword(line, job_titles)) {
                 fieldList.add(new Field(Job, line));
             } else if (isValidText(line)) {
-                if(!line.isEmpty()) {
+                if (!line.isEmpty()) {
                     Pattern pattern = Pattern.compile("^[0-9 ()+-]{0,20}+$");
-                    String splitedLines [] =line.split("/");
+                    String splitedLines[] = line.split("/");
 
-                    for (int i=0; i <splitedLines.length; i++) {
+                    for (int i = 0; i < splitedLines.length; i++) {
                         Matcher matcher = pattern.matcher(splitedLines[i]);
                         if (matcher.find()) {
-                            if(splitedLines[i].length() < 5)
-                                fieldList.add(new Field(Phone, splitedLines[i] + splitedLines[i+1]));
-                            else
+                            if (splitedLines.length > 1 && splitedLines[i].length() < 5) {//handling this case: "0122/ 2344444"
+                                fieldList.add(new Field(Phone, splitedLines[i] + splitedLines[i + 1]));
+                                splitedLines = (String[]) ArrayUtils.removeElement(splitedLines, splitedLines[i + 1]);
+                            } else
                                 fieldList.add(new Field(Phone, splitedLines[i]));
-                        }
-                        else
+                        } else
                             fieldList.add(new Field(Other, line));
                     }
                 }

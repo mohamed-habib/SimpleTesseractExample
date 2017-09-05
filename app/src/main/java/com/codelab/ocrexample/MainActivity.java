@@ -276,7 +276,8 @@ public class MainActivity extends AppCompatActivity implements MainActivityContr
     public void onSelectImageClick(View view) {
         mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
 
-        RadioGroup radioGroup = (RadioGroup) findViewById(R.id.choose_image_rg);
+        final RadioGroup radioGroup = (RadioGroup) findViewById(R.id.choose_image_rg);
+
         radioGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(RadioGroup group, @IdRes int checkedId) {
@@ -284,10 +285,12 @@ public class MainActivity extends AppCompatActivity implements MainActivityContr
                     case R.id.single_image:
                         mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
                         CropImage.activity(null).setGuidelines(CropImageView.Guidelines.ON).start(MainActivity.this);
+                        radioGroup.clearCheck();
                         break;
                     case R.id.directory:
                         mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
                         startDirectorySelector();
+                        radioGroup.clearCheck();
                         break;
 
                 }

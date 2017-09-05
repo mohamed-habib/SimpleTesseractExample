@@ -36,7 +36,7 @@ import java.util.UUID;
  */
 
 public class MainActivityPresenter implements MainActivityContractor.Presenter {
-    Context context;
+    private Context context;
     private MainActivityContractor.View view;
 
     public MainActivityPresenter(Context context, MainActivityContractor.View view) {
