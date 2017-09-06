@@ -18,6 +18,8 @@ import com.codelab.ocrexample.data.APIs;
 import com.codelab.ocrexample.data.model.Card;
 import com.codelab.ocrexample.data.model.CardFields;
 import com.codelab.ocrexample.data.model.Field;
+import com.codelab.ocrexample.data.model.FieldDB;
+import com.codelab.ocrexample.data.model.Item;
 import com.codelab.ocrexample.mobilevision.AsyncTaskListener;
 import com.codelab.ocrexample.mobilevision.MobileVisionTask;
 
@@ -29,7 +31,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Created by Mohamed Habib on 30/08/2017.
@@ -118,7 +119,7 @@ public class MainActivityPresenter implements MainActivityContractor.Presenter {
                             if (!ocrResult.equals("")) {
                                 view.updateGoogleVisionEditText(ocrResult);
                                 List<Field> fieldList = FieldsParsing.parseOCRResult(ocrResult);
-                                view.addRows(fieldList);
+                                view.addRows(fieldList, false);
                                 view.showAddFieldButton();
                             }
 
@@ -169,10 +170,16 @@ public class MainActivityPresenter implements MainActivityContractor.Presenter {
         //create Card object and save to db
         CardFields cardFields = view.getCardFields();
         Card card = new Card(view.getImagePath(), view.getMobileVisionText(), view.getGoogleVisionText()
-                , view.getNotesText(), UUID.randomUUID(), cardFields.getAddresses(), cardFields.getEmails()
-                , cardFields.getJobs(), cardFields.getNames(), cardFields.getPhones(), cardFields.getUrls(), cardFields.getOthers());
+                , view.getNotesText());
         card.insert();
-
+        for (String key : cardFields.getKeys()) {
+            FieldDB field = new FieldDB(key, card.getId());
+            field.insert();
+            for (String item : cardFields.getValues(key)) {
+                Item itemi = new Item(item, field.getID());
+                itemi.insert();
+            }
+        }
         view.cleanForm();
     }
 
@@ -197,7 +204,7 @@ public class MainActivityPresenter implements MainActivityContractor.Presenter {
                 view.updateMobileVisionEditText(ocrResult);
                 List<Field> fieldList = FieldsParsing.parseOCRResult(ocrResult);
                 //List<Field> fieldList = FieldsParsing.parseOCRResult(ocrResultWordList);
-                view.addRows(fieldList);
+                view.addRows(fieldList, false);
                 view.showAddFieldButton();
                 view.hideProgressBar();
             }

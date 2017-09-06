@@ -6,4 +6,4 @@
 .DS_Store
 /build
 /captures
-/app/src/main/java/com/codelab/ocrexample/SecretKeys.java
+/app/src/main/java/com/codelab/ocrexample/data/SecretKeys.java

@@ -14,7 +14,9 @@ import java.util.List;
 public interface MainActivityContractor {
     interface View {
         String getImagePath();
+
         void showToast(String text);
+
         void hideStatusText();
 
         String getSelectedDirectory();
@@ -25,7 +27,7 @@ public interface MainActivityContractor {
 
         CardFields getCardFields();
 
-        void addRows(List<Field> fieldList);
+        void addRows(List<Field> fieldList, boolean clearPreviousData);
 
         void showProgressBar();
 
@@ -34,7 +36,6 @@ public interface MainActivityContractor {
         void updateMobileVisionEditText(String text);
 
         String getMobileVisionText();
-
 
         String getGoogleVisionText();
 
@@ -49,7 +50,9 @@ public interface MainActivityContractor {
         void showSnackBar(String text, String buttonText, android.view.View.OnClickListener actionListener);
 
         void showNetworkError();
+
         void showMobileVisionTextError();
+
         void showAddFieldButton();
 
         void hideAddFieldButton();

@@ -12,6 +12,8 @@ import com.codelab.ocrexample.Utils;
 import com.codelab.ocrexample.data.model.Card;
 import com.codelab.ocrexample.data.model.CardFields;
 import com.codelab.ocrexample.data.model.Field;
+import com.codelab.ocrexample.data.model.FieldDB;
+import com.codelab.ocrexample.data.model.Item;
 import com.google.android.gms.vision.Frame;
 import com.google.android.gms.vision.text.TextBlock;
 import com.google.android.gms.vision.text.TextRecognizer;
@@ -19,7 +21,6 @@ import com.google.android.gms.vision.text.TextRecognizer;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Created by Mohamed Habib on 30/08/2017.
@@ -88,13 +89,22 @@ public class MobileVisionTask {
                         String imagePath = imgFile.getPath();
                         StringBuilder ocrResultLines = getOCRResult(context, imagePath, null);
                         List<Field> fieldList = FieldsParsing.parseOCRResult(ocrResultLines.toString());
+
                         CardFields cardFields = new CardFields();
                         for (Field field : fieldList) {
                             cardFields.createField(field.getType(), field.getLine());
                         }
-                        Card card = new Card(imagePath, ocrResultLines.toString(), "", "", UUID.randomUUID(), cardFields.getAddresses(), cardFields.getEmails()
-                                , cardFields.getJobs(), cardFields.getNames(), cardFields.getPhones(), cardFields.getUrls(), cardFields.getOthers());
+                        Card card = new Card(imagePath, ocrResultLines.toString(), "", "");
                         card.insert();
+                        for (String key : cardFields.getKeys()) {
+                            FieldDB field = new FieldDB(key, card.getId());
+                            field.insert();
+                            for (String item : cardFields.getValues(key)) {
+                                Item itemi = new Item(item, field.getID());
+                                itemi.insert();
+                            }
+                        }
+
                     }
                 }
             }

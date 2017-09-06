@@ -10,9 +10,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Environment;
 import android.support.annotation.IdRes;
 import android.support.annotation.NonNull;
 import android.support.design.widget.BottomSheetBehavior;
@@ -22,7 +20,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.Pair;
-import android.util.SparseArray;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -40,21 +37,8 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.android.volley.AuthFailureError;
-import com.android.volley.NetworkError;
-import com.android.volley.NoConnectionError;
-import com.android.volley.ParseError;
-import com.android.volley.Response;
-import com.android.volley.ServerError;
-import com.android.volley.TimeoutError;
-import com.android.volley.VolleyError;
-import com.codelab.ocrexample.data.APIs;
-import com.codelab.ocrexample.data.model.Card;
 import com.codelab.ocrexample.data.model.CardFields;
 import com.codelab.ocrexample.data.model.Field;
-import com.google.android.gms.vision.Frame;
-import com.google.android.gms.vision.text.TextBlock;
-import com.google.android.gms.vision.text.TextRecognizer;
 import com.google.zxing.Result;
 import com.theartofdev.edmodo.cropper.CropImage;
 import com.theartofdev.edmodo.cropper.CropImageView;
@@ -62,16 +46,8 @@ import com.theartofdev.edmodo.cropper.CropImageView;
 import net.rdrei.android.dirchooser.DirectoryChooserActivity;
 import net.rdrei.android.dirchooser.DirectoryChooserConfig;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
 
 import me.dm7.barcodescanner.zxing.ZXingScannerView;
 import pl.tajchert.nammu.Nammu;
@@ -79,7 +55,7 @@ import pl.tajchert.nammu.PermissionCallback;
 
 import static android.view.View.GONE;
 
-public class MainActivity extends AppCompatActivity implements ZXingScannerView.ResultHandler {
+public class MainActivity extends AppCompatActivity implements MainActivityContractor.View, ZXingScannerView.ResultHandler {
     public static final int REQUEST_DIRECTORY = 300;
 
     ImageView mImageView;
@@ -285,6 +261,10 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
         }
     }
 
+    private void bulkExecuteGoogleCloudOCR(String directoryPath) {
+        //todo
+    }
+
     @Override
     public void showNoSelectedImageError() {
         showSnackBar("Choose card image", "CHOOSE IMAGE", new View.OnClickListener() {
@@ -339,26 +319,6 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
 
     public void submitClick(View view) {
         mainActivityPresenter.onSubmit();
-
-        //todo merge with the above method
-        /*
-        if (checkForImageCapture(view)) return;
-        if (checkForCardText(view)) return;
-        //create Card object and save to db
-        CardFields cardFields = getCardFields();
-        Card card = new Card(mImagePath, ocrMobileVisionET.getText().toString(), ocrGoogleVisionET.getText().toString()
-                , mNotesET.getText().toString());
-//        cardFields.getAddresses(), cardFields.getEmails()
-//                , cardFields.getJobs(), cardFields.getNames(), cardFields.getPhones(), cardFields.getUrls(), cardFields.getOthers())
-        card.insert();
-        for (String key : cardFields.getKeys()) {
-            FieldDB field = new FieldDB(key, card.getId());
-            field.insert();
-            for (String item : cardFields.getValues(key)) {
-                Item itemi = new Item(item, field.getID());
-                itemi.insert();
-            }
-        }*/
     }
 
     @Override
@@ -372,7 +332,6 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
         mImagePath = null;
         fieldViews.clear();
         fieldsContainerLL.removeAllViews();
-
     }
 
     @Override
@@ -447,69 +406,8 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
         });
     }
 
-    private void executeGoogleCloudOCR() {
-        //todo: merge with the presenter
-        List<String> languages = Arrays.asList("en");
-        String base64Image = Utils.bitmapToBase64(mImageBitmap);
-
-        if (NetworkUtilies.isConnectingToInternet(this)) {
-            final ProgressDialog pd = setupProgressDialog();
-
-            APIs.callGoogleCloudOCRAPI(this, languages, base64Image, new Response.Listener<JSONObject>() {
-                @Override
-                public void onResponse(JSONObject response) {
-                    pd.dismiss();
-                    Log.d("onResponse", "Response");
-                    if (response != null) {
-                        try {
-                            Log.d("onResponse", "Response in not Null   " + response.toString());
-                            JSONArray responsesJsonArray = response.getJSONArray("responses");
-                            if (responsesJsonArray.length() > 0) {
-                                JSONObject jsonObject = responsesJsonArray.getJSONObject(0);
-                                JSONArray textAnnotationsJsonArray = jsonObject.getJSONArray("textAnnotations");
-                                if (textAnnotationsJsonArray.length() > 0) {
-                                    JSONObject textAnnotationJsonObject = textAnnotationsJsonArray.getJSONObject(0);
-                                    String description = textAnnotationJsonObject.getString("description");
-                                    Log.d("onResponse", "description: " + description);
-
-                                    ocrGoogleVisionET.setText(description);
-
-                                    List<Field> fieldList = FieldsParsing.parseOCRResult(description);
-                                    addRows(fieldList, true);
-                                    addBtn.setVisibility(View.VISIBLE);
-                                }
-                            }
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-                    } else
-                        Log.d("onResponse", "Response is Null");
-
-                }
-            }, new Response.ErrorListener() {
-                @Override
-                public void onErrorResponse(VolleyError error) {
-                    pd.dismiss();
-
-                    if (error instanceof TimeoutError || error instanceof NoConnectionError) {
-                        Toast.makeText(MainActivity.this, "TimeoutError || NoConnectionError", Toast.LENGTH_LONG).show();
-                    } else if (error instanceof AuthFailureError) {
-                        Toast.makeText(MainActivity.this, "AuthFailureError", Toast.LENGTH_LONG).show();
-                    } else if (error instanceof ServerError) {
-                        Toast.makeText(MainActivity.this, "ServerError", Toast.LENGTH_LONG).show();
-                    } else if (error instanceof NetworkError) {
-                        Toast.makeText(MainActivity.this, "NetworkError", Toast.LENGTH_LONG).show();
-                    } else if (error instanceof ParseError) {
-                        Toast.makeText(MainActivity.this, "ParseError", Toast.LENGTH_LONG).show();
-                    }
-                }
-            });
-        } else {
-            Snackbar.make(mImageView, "No Internet Connection", Snackbar.LENGTH_LONG).show();
-        }
-    }
-
-    private void addRows(List<Field> fieldList, boolean clearPreviousData) {
+    @Override
+    public void addRows(List<Field> fieldList, boolean clearPreviousData) {
         fieldsContainerLL.removeAllViewsInLayout();
 
         for (final Field field : fieldList) {
@@ -549,19 +447,13 @@ public class MainActivity extends AppCompatActivity implements ZXingScannerView.
         final View row = LayoutInflater.from(MainActivity.this).inflate(R.layout.new_row, null);
         AutoCompleteTextView autoCompleteTextView = (AutoCompleteTextView) row.findViewById(R.id.type);
         EditText editText = (EditText) row.findViewById(R.id.data);
+        ImageButton deleteIB = (ImageButton) row.findViewById(R.id.remove);
         String[] types = getResources().getStringArray(R.array.data_types);
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, types);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, types);
         autoCompleteTextView.setAdapter(adapter);
         final Pair<AutoCompleteTextView, EditText> spinnerEditTextPair = new Pair<>(autoCompleteTextView, editText);
 
-        ImageButton deleteIB = ViewsUtils.createDeleteIB(this, new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-////                fieldsContainerLL.removeView(layout);
-//                fieldViews.remove(spinnerEditTextPair);
-            }
-        });
-        row.findViewById(R.id.remove).setOnClickListener(new View.OnClickListener() {
+        deleteIB.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 fieldsContainerLL.removeView(row);
