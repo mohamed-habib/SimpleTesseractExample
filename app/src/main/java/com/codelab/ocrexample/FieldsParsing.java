@@ -32,16 +32,16 @@ public class FieldsParsing {
             , "Leader", "President", "Chief", "Officer", "Designer"
             , "Senior", "Junior", "Project", "Supervisor", "Specialist");
 
-    static List<String> unWantedKeywords = Arrays.asList("Mobile: ", "Mobile ", "Fax: ", "Fax ",
+    static List<String> unWantedKeywords = Arrays.asList("Mobile: ", "Mobile ", "Fax: ", "Fax ", "Fax",
             "Phone: ", "Phone ", "E-mail: ", "E-mail ", "Mail ", "Mail :", "Email: ", "Email ", "mail: "
             , "Mob\\.: ", "Mob\\. ", "Mob: ", "Mob ", "\\.: ", "M: ", "M\\. ", "E: ", "E\\. "
-            , "Tel: ", "Tel\\. ", "Tel\\.: ", "Tel ");
+            , "Tel: ", "Tel\\. ", "Tel\\.: ", "Tel ", "\\: ");
 
     static List<String> mobileKeywords = Arrays.asList("Mobile\\. ", "Mobile: ", "Mobile "
             , "Mob\\. ", "Mob\\.: ", "Mob: ", "Mob ", "M: ", "M\\. ", "Phone: ", "Phone "
             , "Tel: ", "Tel\\. ", "Tel\\.: ", "Tel ");
 
-    static List<String> faxKeywords = Arrays.asList("Fax\\.", "Fax\\.: ", "Fax: ", "Fax ");
+    static List<String> faxKeywords = Arrays.asList("Fax\\.", "Fax\\.: ", "Fax: ", "Fax ", "Fax");
 
     static List<String> emailKeywords = Arrays.asList("E-mail: ", "E-mail ", "Mail ", "Mail :",
             "Email: ", "Email ", "mail: ", "E\\.: ", "E\\. ", "E: ");
@@ -66,15 +66,6 @@ public class FieldsParsing {
             }
         }
         return phoneNumbers;
-    }
-
-    public static String getPhoneNumber(String text) {
-        Pattern pattern = Pattern.compile("\\d{3}-\\d{3}-\\d{4}");
-        Matcher matcher = pattern.matcher(text);
-        if (matcher.find()) {
-            return matcher.group(0);
-        }
-        return "";
     }
 
     public static boolean containsAKeyword(String subString, List<String> keywords) {
@@ -121,14 +112,18 @@ public class FieldsParsing {
                 fieldList.add(new Field(Job, line));
             } else if (isValidText(line)) {
                 if (!line.isEmpty()) {
-                    Pattern pattern = Pattern.compile("^[0-9 ()+-]{0,20}+$");
+                    Pattern pattern = Pattern.compile("^[0-9 ()+-]{1,20}+$");
                     String splitedLines[] = line.split("/");
 
                     for (int i = 0; i < splitedLines.length; i++) {
                         Matcher matcher = pattern.matcher(splitedLines[i]);
                         if (matcher.find()) {
-                            if (splitedLines.length > 1 && splitedLines[i].length() < 5) {//handling this case: "0122/ 2344444"
+
+                            if (splitedLines.length > i + 1 && splitedLines[i].length() < 5) {//handling this case: "0122/ 2344444"
                                 fieldList.add(new Field(Phone, splitedLines[i] + splitedLines[i + 1]));
+                                splitedLines = (String[]) ArrayUtils.removeElement(splitedLines, splitedLines[i + 1]);
+                            } else if (splitedLines.length > i + 1 && (splitedLines[i + 1].length() < 4)) {
+                                fieldList.add(new Field(Phone, splitedLines[i] + "/" + splitedLines[i + 1]));
                                 splitedLines = (String[]) ArrayUtils.removeElement(splitedLines, splitedLines[i + 1]);
                             } else
                                 fieldList.add(new Field(Phone, splitedLines[i]));
@@ -139,10 +134,6 @@ public class FieldsParsing {
             }
         }
         return fieldList;
-    }
-
-    private static boolean hasKeyWords(String line) {
-        return false;
     }
 
     private static boolean isValidText(String line) {

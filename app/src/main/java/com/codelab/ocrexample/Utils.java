@@ -2,6 +2,7 @@ package com.codelab.ocrexample;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.os.Environment;
 import android.util.Base64;
 
 import java.io.ByteArrayOutputStream;
@@ -72,7 +73,11 @@ public class Utils {
 
     public static void copyFile(File src, File dst) throws IOException {
         FileChannel inChannel = new FileInputStream(src).getChannel();
-        FileChannel outChannel = new FileOutputStream(dst).getChannel();
+
+        if(!new File(Environment.getExternalStorageDirectory() + "/OCR/").exists())
+            new File(Environment.getExternalStorageDirectory() + "/OCR/").mkdir();
+
+            FileChannel outChannel = new FileOutputStream(dst).getChannel();
         try {
             inChannel.transferTo(0, inChannel.size(), outChannel);
         } finally {
