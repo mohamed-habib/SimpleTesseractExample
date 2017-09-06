@@ -1,80 +1,83 @@
 package com.codelab.ocrexample.data.model;
 
-import java.util.ArrayList;
-import java.util.List;
+import android.content.Context;
 
-import static com.codelab.ocrexample.data.model.Field.Address;
-import static com.codelab.ocrexample.data.model.Field.Email;
-import static com.codelab.ocrexample.data.model.Field.Job;
-import static com.codelab.ocrexample.data.model.Field.Name;
-import static com.codelab.ocrexample.data.model.Field.Other;
-import static com.codelab.ocrexample.data.model.Field.Phone;
-import static com.codelab.ocrexample.data.model.Field.URL;
+import com.codelab.ocrexample.R;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Created by Mohamed Habib on 22/08/2017.
  */
 
 public class CardFields {
-    List<String> addresses = new ArrayList<>();
-    List<String> emails = new ArrayList<>();
-    List<String> jobs = new ArrayList<>();
-    List<String> names = new ArrayList<>();
-    List<String> phones = new ArrayList<>();
-    List<String> urls = new ArrayList<>();
-    List<String> others = new ArrayList<>();
+    Context context;
+    private HashMap<String, List<String>> fields = new HashMap<>();
 
-    public List<String> getAddresses() {
-        return addresses;
+    public CardFields(Context context) {
+        this.context = context;
     }
 
-    public List<String> getEmails() {
-        return emails;
-    }
+    public void createField(String type, String line) {
+        if (fields.containsKey(type)) {
+            List<String> items = fields.get(type);
+            items.add(line);
+            fields.put(type, items);
+        } else {
+            List<String> items = new ArrayList<>();
+            items.add(line);
+            fields.put(type, items);
 
-    public List<String> getJobs() {
-        return jobs;
-    }
-
-    public List<String> getNames() {
-        return names;
-    }
-
-    public List<String> getPhones() {
-        return phones;
-    }
-
-    public List<String> getUrls() {
-        return urls;
-    }
-
-    public List<String> getOthers() {
-        return others;
-    }
-
-    public void createField(int type, String line) {
-        switch (type) {
-            case Address:
-                addresses.add(line);
-                break;
-            case Email:
-                emails.add(line);
-                break;
-            case Job:
-                jobs.add(line);
-                break;
-            case Name:
-                names.add(line);
-                break;
-            case Phone:
-                phones.add(line);
-                break;
-            case Other:
-                others.add(line);
-                break;
-            case URL:
-                urls.add(line);
-                break;
         }
+    }
+
+    public Set<String> getKeys() {
+        return fields.keySet();
+    }
+
+    public List<String> getValues(String type) {
+        return fields.get(type);
+    }
+//    public void createField(String type, String line) {
+//        switch (type) {
+//            case "Address":
+//                addresses.add(line);
+//                break;
+//            case "Email":
+//                emails.add(line);
+//                break;
+//            case "Job":
+//                jobs.add(line);
+//                break;
+//            case "Name":
+//                names.add(line);
+//                break;
+//            case "Phone":
+//                phones.add(line);
+//                break;
+//            case "Other":
+//                others.add(line);
+//                break;
+//            case "URL":
+//                urls.add(line);
+//                break;
+//            default:
+//                otherss.add(Pair.create(type, line));
+//                break;
+//
+//
+//        }
+//    }
+
+    public int getTypeIndex(String type) {
+        String types[] = context.getResources().getStringArray(R.array.data_types);
+        for (int i = 0; i < types.length; i++) {
+            if (types[i].equalsIgnoreCase(type))
+                return i;
+        }
+        return -1;
     }
 }

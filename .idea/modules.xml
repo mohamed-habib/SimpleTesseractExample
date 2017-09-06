@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/SimpleTesseractExample.iml" filepath="$PROJECT_DIR$/SimpleTesseractExample.iml" />
       <module fileurl="file://$PROJECT_DIR$/SimpleTesseractExample2.iml" filepath="$PROJECT_DIR$/SimpleTesseractExample2.iml" />
+      <module fileurl="file://$PROJECT_DIR$/SimpleTesseractExample3.iml" filepath="$PROJECT_DIR$/SimpleTesseractExample3.iml" />
       <module fileurl="file://$PROJECT_DIR$/TesseractExample.iml" filepath="$PROJECT_DIR$/TesseractExample.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
     </modules>

@@ -4,11 +4,12 @@ import android.graphics.Bitmap;
 
 import com.codelab.ocrexample.data.AppDatabase;
 import com.raizlabs.android.dbflow.annotation.Column;
+import com.raizlabs.android.dbflow.annotation.OneToMany;
 import com.raizlabs.android.dbflow.annotation.PrimaryKey;
 import com.raizlabs.android.dbflow.annotation.Table;
+import com.raizlabs.android.dbflow.sql.language.SQLite;
 import com.raizlabs.android.dbflow.structure.BaseModel;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,22 +28,32 @@ public class Card extends BaseModel {
     String notes;
     @PrimaryKey // at least one primary key required
             UUID id;
-    //// TODO: extract into a separate table and make a one to many rel.
-    @Column
-    String addresses;
-    @Column
-    String emails;
-    @Column
-    String jobs;
-    @Column
-    String names;
-    @Column
-    String phones;
-    @Column
-    String urls;
-    @Column
-    String others;
 
+    // get fields linked to this card
+    List<FieldDB> fieldsDBList;
+    Bitmap imgBitmap;
+
+    public Card() {
+    }
+
+    public Card(String imgPath, String imgTextMobileVision, String imgTextGoogleCloud, String notes) {
+        this.imgPath = imgPath;
+        this.imgTextMobileVision = imgTextMobileVision;
+        this.imgTextGoogleCloud = imgTextGoogleCloud;
+        this.notes = notes;
+        this.id = UUID.randomUUID();
+    }
+
+    @OneToMany(methods = OneToMany.Method.LOAD, variableName = "fieldsDBList")
+    public List<FieldDB> getFields() {
+        if (fieldsDBList == null) {
+            fieldsDBList = SQLite.select()
+                    .from(FieldDB.class)
+                    .where(FieldDB_Table.cardID.eq(this.id))
+                    .queryList();
+        }
+        return fieldsDBList;
+    }
 
     public Bitmap getImgBitmap() {
         return imgBitmap;
@@ -52,98 +63,8 @@ public class Card extends BaseModel {
         this.imgBitmap = imgBitmap;
     }
 
-    Bitmap imgBitmap;
-
-    public Card() {
-    }
-
     public String getNotes() {
         return notes;
-    }
-
-    public void setAddresses(List<String> addresses) {
-        this.addresses = convertToString(addresses);
-    }
-
-    public void setEmails(List<String> emails) {
-        this.emails = convertToString(emails);
-    }
-
-    public void setJobs(List<String> jobs) {
-        this.jobs = convertToString(jobs);
-    }
-
-    public void setNames(List<String> names) {
-        this.names = convertToString(names);
-    }
-
-    public void setPhones(List<String> phones) {
-        this.phones = convertToString(phones);
-    }
-
-    public void setUrls(List<String> urls) {
-        this.urls = convertToString(urls);
-    }
-
-    public void setOthers(List<String> others) {
-        this.others = convertToString(others);
-    }
-
-
-    private List<String> convertToList(String list) {
-        return Arrays.asList(list.split("&&&"));
-    }
-
-    public List<String> getAddresses() {
-        return convertToList(addresses);
-    }
-
-    public List<String> getEmails() {
-        return convertToList(emails);
-    }
-
-    public List<String> getJobs() {
-        return convertToList(jobs);
-    }
-
-    public List<String> getNames() {
-        return convertToList(names);
-    }
-
-    public List<String> getPhones() {
-        return convertToList(phones);
-    }
-
-    public List<String> getUrls() {
-        return convertToList(urls);
-    }
-
-    public List<String> getOthers() {
-        return convertToList(others);
-    }
-
-    private String convertToString(List<String> list) {
-        String string = "";
-        for (String s : list) {
-            string = string + "&&&" + s;
-        }
-        return string;
-    }
-
-    public Card(String imgPath, String imgTextMobileVision, String imgTextGoogleCloud, String notes, UUID id, List<String> addresses,
-                List<String> emails, List<String> jobs, List<String> names, List<String> phones, List<String> urls, List<String> others) {
-        this.imgPath = imgPath;
-        this.imgTextMobileVision = imgTextMobileVision;
-        this.imgTextGoogleCloud = imgTextGoogleCloud;
-        this.notes = notes;
-        this.id = id;
-        setAddresses(addresses);
-        setEmails(emails);
-        setJobs(jobs);
-        setNames(names);
-        setPhones(phones);
-        setUrls(urls);
-        setOthers(others);
     }
 
     public String getImgPath() {
