@@ -64,7 +64,7 @@ public interface MainActivityContractor {
 
         void imageSelected();
 
-        void executeGoogleCloudOCR();
+        void executeGoogleCloudOCR(List<String> languages );
 
         void onSubmit();
 

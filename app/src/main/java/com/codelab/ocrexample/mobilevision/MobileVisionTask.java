@@ -92,7 +92,7 @@ public class MobileVisionTask {
 
                         CardFields cardFields = new CardFields();
                         for (Field field : fieldList) {
-                            cardFields.createField(field.getType(), field.getLine());
+                            cardFields.createField(field.getTypeValue(), field.getLine());
                         }
                         Card card = new Card(imagePath, ocrResultLines.toString(), "", "");
                         card.insert();

@@ -16,6 +16,27 @@ public class Field {
         return type;
     }
 
+    public String getTypeValue() {
+        switch (type) {
+            case Address:
+                return "Address";
+            case Email:
+                return "Email";
+            case Job:
+                return "Job";
+            case Name:
+                return "Name";
+            case Other:
+                return "Other";
+            case Phone:
+                return "Phone";
+            case URL:
+                return "URL";
+            default:
+                return "Other";
+        }
+    }
+
     public String getLine() {
         return line;
     }

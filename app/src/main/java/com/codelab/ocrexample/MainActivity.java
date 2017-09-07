@@ -3,6 +3,7 @@ package com.codelab.ocrexample;
 import android.Manifest;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
+import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
@@ -47,6 +48,7 @@ import net.rdrei.android.dirchooser.DirectoryChooserActivity;
 import net.rdrei.android.dirchooser.DirectoryChooserConfig;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import me.dm7.barcodescanner.zxing.ZXingScannerView;
@@ -252,12 +254,47 @@ public class MainActivity extends AppCompatActivity implements MainActivityContr
     }
 
     public void RunOCRClick_GV(View view) {
+        AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(this);
+        LayoutInflater inflater = this.getLayoutInflater();
+        final View dialogView = inflater.inflate(R.layout.custom_dialog, null);
+        dialogBuilder.setView(dialogView);
+        dialogBuilder.setTitle("Choose language");
+        dialogBuilder.setMessage("Request with: ");
+        final AlertDialog b = dialogBuilder.create();
+
+        final RadioGroup radioGroup = (RadioGroup) dialogView.findViewById(R.id.language_radio_group);
+        radioGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup group, @IdRes int checkedId) {
+                switch (checkedId) {
+                    case R.id.arabic:
+                        executeGoogleCloudOCR(Arrays.asList("ar"));
+                        b.hide();
+                        break;
+                    case R.id.english:
+                        executeGoogleCloudOCR(Arrays.asList("en"));
+                        b.hide();
+                        break;
+                }
+
+            }
+        });
+
+//        dialogBuilder.setPositiveButton("Done", new DialogInterface.OnClickListener() {
+//            public void onClick(DialogInterface dialog, int whichButton) {
+//
+//            }
+//        });
+        b.show();
+    }
+
+    private void executeGoogleCloudOCR(List<String> languages) {
         ocrGoogleVisionET.setText("");
         if (!getSelectedDirectory().equals("")) {
-            Snackbar.make(view, "Not implemented yet", Snackbar.LENGTH_LONG).show();
+            Snackbar.make(findViewById(R.id.main_content), "Not implemented yet", Snackbar.LENGTH_LONG).show();
             bulkExecuteGoogleCloudOCR(directoryPath);
         } else {
-            mainActivityPresenter.executeGoogleCloudOCR();
+            mainActivityPresenter.executeGoogleCloudOCR(languages);
         }
     }
 

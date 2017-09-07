@@ -29,7 +29,6 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -84,8 +83,7 @@ public class MainActivityPresenter implements MainActivityContractor.Presenter {
     }
 
     @Override
-    public void executeGoogleCloudOCR() {
-        List<String> languages = Arrays.asList("en");
+    public void executeGoogleCloudOCR(List<String> languages ) {
         if (hasImageCaptured()) {
             Bitmap imageBitmap = Utils.getBitmap(view.getImagePath());
             String base64Image = Utils.bitmapToBase64(imageBitmap);
