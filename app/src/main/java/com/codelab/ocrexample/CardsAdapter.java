@@ -52,7 +52,8 @@ public class CardsAdapter extends RecyclerView.Adapter<CardsAdapter.CardViewHold
     @Override
     public void onBindViewHolder(CardsAdapter.CardViewHolder viewHolder, final int i) {
         final Card selectedCard = mFilteredList.get(i);
-        viewHolder.cardIV.setImageBitmap(selectedCard.getImgBitmap());
+//        viewHolder.cardIV.setImageBitmap(selectedCard.getImgBitmap());
+        viewHolder.cardIV.setImageBitmap(Utils.getBitmap(selectedCard.getImgPath()));
         viewHolder.deleteIB.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

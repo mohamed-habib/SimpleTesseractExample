@@ -70,8 +70,7 @@ public class ViewsUtils {
     public static TextView createLineTV(Context context, String line) {
         final TextView textView = new TextView(context);
         textView.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        String text = line + ": ";
-        textView.setText(text);
+        textView.setText(line);
         return textView;
     }
 }

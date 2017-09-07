@@ -40,9 +40,9 @@ public class SearchActivtiy extends AppCompatActivity {
         mArrayList = SQLite.select().from(Card.class).queryList();
 
         //load image bitmap to the list
-        for (int i = 0; i < mArrayList.size(); i++) {
-            mArrayList.get(i).setImgBitmap(Utils.getBitmap(mArrayList.get(i).getImgPath()));
-        }
+//        for (int i = 0; i < mArrayList.size(); i++) {
+//            mArrayList.get(i).setImgBitmap(Utils.getBitmap(mArrayList.get(i).getImgPath()));
+//        }
 
         mAdapter = new CardsAdapter(this, mArrayList);
         mRecyclerView.setAdapter(mAdapter);
