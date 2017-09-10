@@ -1,4 +1,4 @@
-package com.codelab.ocrexample;
+package com.codelab.ocrexample.mainactivity;
 
 import android.Manifest;
 import android.animation.Animator;
@@ -38,8 +38,12 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.codelab.ocrexample.FieldsParsing;
+import com.codelab.ocrexample.R;
+import com.codelab.ocrexample.ViewsUtils;
 import com.codelab.ocrexample.data.model.CardFields;
 import com.codelab.ocrexample.data.model.Field;
+import com.codelab.ocrexample.searchactiviy.SearchActivtiy;
 import com.google.zxing.Result;
 import com.theartofdev.edmodo.cropper.CropImage;
 import com.theartofdev.edmodo.cropper.CropImageView;
@@ -72,13 +76,12 @@ public class MainActivity extends AppCompatActivity implements MainActivityContr
     //holds the fields to get the latest data onSubmit
     List<Pair<Spinner, EditText>> fieldViews = new ArrayList<>();
     List<Pair<AutoCompleteTextView, EditText>> customFieldViews = new ArrayList<>();
-
-    private ZXingScannerView mScannerView;
     String directoryPath = "";
     View bottomSheet;
     BottomSheetBehavior mBottomSheetBehavior;
-    private ProgressDialog pd;
     MainActivityPresenter mainActivityPresenter;
+    private ZXingScannerView mScannerView;
+    private ProgressDialog pd;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

@@ -1,4 +1,4 @@
-package com.codelab.ocrexample;
+package com.codelab.ocrexample.mainactivity;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -14,6 +14,9 @@ import com.android.volley.Response;
 import com.android.volley.ServerError;
 import com.android.volley.TimeoutError;
 import com.android.volley.VolleyError;
+import com.codelab.ocrexample.FieldsParsing;
+import com.codelab.ocrexample.NetworkUtilies;
+import com.codelab.ocrexample.Utils;
 import com.codelab.ocrexample.data.APIs;
 import com.codelab.ocrexample.data.model.Card;
 import com.codelab.ocrexample.data.model.CardFields;

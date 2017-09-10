@@ -23,7 +23,7 @@
 
         <activity android:name="net.rdrei.android.dirchooser.DirectoryChooserActivity" />
         <activity
-            android:name="com.codelab.ocrexample.MainActivity"
+            android:name="com.codelab.ocrexample.mainactivity.MainActivity"
             android:windowSoftInputMode="adjustPan">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -33,15 +33,15 @@
         </activity>
 
         <activity
-            android:name="com.codelab.ocrexample.SearchActivtiy"
+            android:name="com.codelab.ocrexample.searchactiviy.SearchActivtiy"
             android:label="All Cards"
-            android:parentActivityName=".MainActivity"
+            android:parentActivityName=".mainactivity.MainActivity"
             android:theme="@style/AppTheme.NoActionBar"
             android:windowSoftInputMode="adjustPan">
 
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".MainActivity" />
+                android:value=".mainactivity.MainActivity" />
         </activity>
 
         <activity android:name="com.theartofdev.edmodo.cropper.CropImageActivity" />

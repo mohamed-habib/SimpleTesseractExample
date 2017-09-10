@@ -1,4 +1,4 @@
-package com.codelab.ocrexample;
+package com.codelab.ocrexample.searchactiviy;
 
 import android.os.Bundle;
 import android.support.v4.app.NavUtils;
@@ -11,13 +11,15 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import com.codelab.ocrexample.R;
 import com.codelab.ocrexample.data.model.Card;
-import com.raizlabs.android.dbflow.sql.language.SQLite;
 
 import java.util.List;
+import java.util.UUID;
 
-public class SearchActivtiy extends AppCompatActivity {
+public class SearchActivtiy extends AppCompatActivity implements CardAdapterListener {
 
+    SearchActivityContractor.Presenter presenter;
     private RecyclerView mRecyclerView;
     private List<Card> mArrayList;
     private CardsAdapter mAdapter;
@@ -29,23 +31,24 @@ public class SearchActivtiy extends AppCompatActivity {
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
+        presenter = new SearchActivityPresenter();
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         mRecyclerView = (RecyclerView) findViewById(R.id.cards_rv);
         mRecyclerView.setHasFixedSize(true);
+
         RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(this);
         mRecyclerView.setLayoutManager(layoutManager);
 
-        mArrayList = SQLite.select().from(Card.class).queryList();
+        presenter.getCards(new DataRetrieveListener() {
+            @Override
+            public void onSuccess(List<Card> cards) {
 
-        //load image bitmap to the list
-//        for (int i = 0; i < mArrayList.size(); i++) {
-//            mArrayList.get(i).setImgBitmap(Utils.getBitmap(mArrayList.get(i).getImgPath()));
-//        }
+                mAdapter = new CardsAdapter(SearchActivtiy.this, cards, SearchActivtiy.this);
+                mRecyclerView.setAdapter(mAdapter);
 
-        mAdapter = new CardsAdapter(this, mArrayList);
-        mRecyclerView.setAdapter(mAdapter);
+            }
+        });
     }
 
     @Override
@@ -89,4 +92,8 @@ public class SearchActivtiy extends AppCompatActivity {
         });
     }
 
+    @Override
+    public void onItemDelete(UUID ID) {
+        presenter.deleteCardData(ID);
+    }
 }

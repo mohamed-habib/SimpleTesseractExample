@@ -1,4 +1,4 @@
-package com.codelab.ocrexample;
+package com.codelab.ocrexample.mainactivity;
 
 import android.graphics.Bitmap;
 
