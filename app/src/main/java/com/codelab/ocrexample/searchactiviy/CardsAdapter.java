@@ -4,6 +4,7 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.graphics.drawable.Drawable;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -15,8 +16,8 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.bumptech.glide.Glide;
 import com.codelab.ocrexample.R;
-import com.codelab.ocrexample.Utils;
 import com.codelab.ocrexample.ViewsUtils;
 import com.codelab.ocrexample.data.model.Card;
 import com.codelab.ocrexample.data.model.FieldDB;
@@ -32,6 +33,7 @@ import java.util.List;
 public class CardsAdapter extends RecyclerView.Adapter<CardsAdapter.CardViewHolder> implements Filterable {
 
     CardAdapterListener adapterListener;
+    Drawable errorImg;
     private List<Card> mArrayList;
     private List<Card> mFilteredList;
     private Context mContext;
@@ -41,6 +43,8 @@ public class CardsAdapter extends RecyclerView.Adapter<CardsAdapter.CardViewHold
         mFilteredList = arrayList;
         mContext = context;
         this.adapterListener = adapterListener;
+        errorImg = mContext.getDrawable(R.drawable.close);
+
     }
 
     @Override
@@ -52,7 +56,9 @@ public class CardsAdapter extends RecyclerView.Adapter<CardsAdapter.CardViewHold
     @Override
     public void onBindViewHolder(CardsAdapter.CardViewHolder viewHolder, final int i) {
         final Card selectedCard = mFilteredList.get(i);
-        viewHolder.cardIV.setImageBitmap(Utils.getBitmap(selectedCard.getImgPath()));
+
+        Glide.with(mContext).load(selectedCard.getImgPath()).error(errorImg).into(viewHolder.cardIV);
+
     }
 
     private void addRow(LinearLayout fieldsContainerLL, String type, String line) {
@@ -114,7 +120,6 @@ public class CardsAdapter extends RecyclerView.Adapter<CardsAdapter.CardViewHold
 
         CardViewHolder(View view) {
             super(view);
-            final Card selectedCard = mFilteredList.get(getAdapterPosition());
 
             cardIV = (ImageView) view.findViewById(R.id.card_iv);
             deleteIB = (ImageButton) view.findViewById(R.id.delete_ib);
@@ -122,12 +127,18 @@ public class CardsAdapter extends RecyclerView.Adapter<CardsAdapter.CardViewHold
             deleteIB.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+
                     final AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
+
                     DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
+                            final Card selectedCard = mFilteredList.get(getAdapterPosition());
+
                             switch (which) {
                                 case DialogInterface.BUTTON_POSITIVE:
+
+
                                     adapterListener.onItemDelete(selectedCard.getId());
                                     mFilteredList.remove(getAdapterPosition());
                                     notifyDataSetChanged();
@@ -146,6 +157,8 @@ public class CardsAdapter extends RecyclerView.Adapter<CardsAdapter.CardViewHold
             item.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+                    final Card selectedCard = mFilteredList.get(getAdapterPosition());
+
                     Dialog dialog = new Dialog(mContext);
                     dialog.setContentView(R.layout.card_details);
                     TextView ocrMobileVisionTV = (TextView) dialog.findViewById(R.id.card_details_ocr_mv_data);
@@ -155,7 +168,8 @@ public class CardsAdapter extends RecyclerView.Adapter<CardsAdapter.CardViewHold
                     TextView notesTV = (TextView) dialog.findViewById(R.id.card_details_notes);
                     notesTV.setText(selectedCard.getNotes());
                     ImageView image = (ImageView) dialog.findViewById(R.id.card_details_iv);
-                    image.setImageBitmap(selectedCard.getImgBitmap());
+
+                    Glide.with(mContext).load(selectedCard.getImgPath()).error(errorImg).into(image);
 
                     LinearLayout fieldsContainerLL = (LinearLayout) dialog.findViewById(R.id.card_details_fields_container);
                     for (FieldDB fieldDB : selectedCard.getFields()) {

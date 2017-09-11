@@ -29,7 +29,7 @@ public class SearchActivityPresenter implements SearchActivityContractor.Present
             public void onListQueryResult(QueryTransaction transaction, @NonNull List<Card> tResult) {
                 retrieveListener.onSuccess(tResult);
             }
-        });
+        }).execute();
     }
 
     @Override
